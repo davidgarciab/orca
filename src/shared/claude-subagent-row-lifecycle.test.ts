@@ -413,4 +413,46 @@ describe('claude subagent sidebar row lifecycle', () => {
       expect.objectContaining({ id: 'asecond-5e6f7a8b', state: 'working' })
     ])
   })
+
+  it('drops teammates stopped with TaskStop while another teammate stays alive', () => {
+    // Shapes captured live on 2.1.308: TaskStop fires no lifecycle hook, and each teammate's
+    // background_tasks entry carries its spawn description under an unrelated `t…` id.
+    const spawn = (name: string, agentId: string, description: string): void => {
+      claudeEvent({ hook_event_name: 'SubagentStart', agent_id: agentId, agent_type: name })
+      claudeEvent({
+        hook_event_name: 'PostToolUse',
+        tool_name: 'Agent',
+        tool_input: { description, prompt: `Reply ${name}`, name },
+        tool_response: { status: 'teammate_spawned', agent_id: agentId, name }
+      })
+    }
+    const alphaTask = { id: 'tjv37r4y4', type: 'teammate', status: 'running', description: 'Alpha' }
+    const betaTask = { id: 'tjint303j', type: 'teammate', status: 'running', description: 'Beta' }
+    const gammaTask = { id: 'te1pn74jo', type: 'teammate', status: 'running', description: 'Gamma' }
+    claudeEvent({ hook_event_name: 'UserPromptSubmit', prompt: 'start alpha, beta and gamma' })
+    spawn('alpha', 'aalpha-b1567bb51740a755', 'Alpha')
+    spawn('beta', 'abeta-1917b198710ec27a', 'Beta')
+    spawn('gamma', 'agamma-8889833b0c898959', 'Gamma')
+    for (const [name, agentId] of [
+      ['alpha', 'aalpha-b1567bb51740a755'],
+      ['gamma', 'agamma-8889833b0c898959']
+    ]) {
+      claudeEvent({ hook_event_name: 'SubagentStop', agent_id: agentId, agent_type: name })
+      claudeEvent({ hook_event_name: 'TeammateIdle', agent_id: agentId, teammate_name: name })
+    }
+    const listed = claudeEvent({
+      hook_event_name: 'Stop',
+      background_tasks: [alphaTask, betaTask, gammaTask]
+    })
+    expect(listed?.payload.state).toBe('working')
+    expect(listed?.payload.subagents).toHaveLength(3)
+
+    // The lead stops idle alpha and still-working beta; only gamma's entry is listed after.
+    claudeEvent({ hook_event_name: 'UserPromptSubmit', prompt: 'stop alpha and beta' })
+    const afterStop = claudeEvent({ hook_event_name: 'Stop', background_tasks: [gammaTask] })
+    expect(afterStop?.payload.state).toBe('done')
+    expect(afterStop?.payload.subagents).toEqual([
+      expect.objectContaining({ id: 'agamma-8889833b0c898959', state: 'idle' })
+    ])
+  })
 })
