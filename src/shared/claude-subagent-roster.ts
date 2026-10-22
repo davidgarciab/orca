@@ -231,14 +231,24 @@ export function foldClaudeBackgroundTasksIntoRoster(
 
 /** Remember which `background_tasks` description lists a teammate the lead's Agent call spawned. */
 export function recordClaudeTeammateTaskDescription(
-  roster: ClaudeSubagentRoster | undefined,
+  roster: ClaudeSubagentRoster,
   agentId: string,
-  description: string
+  fields: { agentType?: string; description: string },
+  now: number
 ): void {
-  const tracked = roster?.get(agentId)
-  if (tracked && isClaudeTeammateLifecycleId(agentId)) {
-    tracked.teammateTaskDescription = description
+  if (!isClaudeTeammateLifecycleId(agentId) || agentId.length > CLAUDE_SUBAGENT_ID_MAX_LENGTH) {
+    return
   }
+  // Why idle: hook requests are unordered, so this can precede the SubagentStart that revives the
+  // row to working, or follow the teammate's own stop. Idle never gates the pane, and an
+  // unconfirmed idle row is reaped at the next complete lead-Stop fold.
+  const tracked = roster.get(agentId) ?? {
+    state: 'idle',
+    startedAt: now,
+    agentType: fields.agentType
+  }
+  tracked.teammateTaskDescription = fields.description
+  roster.set(agentId, tracked)
 }
 
 /** Drop restored rows that no current-runtime child activity has confirmed. */

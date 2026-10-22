@@ -8,7 +8,6 @@ import {
   foldClaudeBackgroundTasksIntoRoster,
   isClaudeChildTurnEndEvent,
   reapUnconfirmedRestoredClaudeSubagents,
-  recordClaudeTeammateTaskDescription,
   upsertWorkingClaudeSubagent
 } from '../../claude-subagent-roster'
 import type { HookListenerState } from '../listener-state'
@@ -32,36 +31,7 @@ import {
 } from './claude-pane-hold-evidence'
 import { buildClaudeStatusPayload } from './claude-status-build'
 import { trackClaudeTaskNotificationDelivery } from './claude-task-notification-delivery'
-
-/** A lead Agent call that spawned a teammate (captured on 2.1.308) names the description Claude
- *  lists the teammate's `background_tasks` entry under. */
-function recordClaudeTeammateSpawn(
-  state: HookListenerState,
-  paneKey: string,
-  hookPayload: Record<string, unknown>
-): void {
-  const input = hookPayload['tool_input']
-  const response = hookPayload['tool_response']
-  if (
-    readString(hookPayload, 'tool_name') !== 'Agent' ||
-    typeof input !== 'object' ||
-    input === null ||
-    typeof response !== 'object' ||
-    response === null ||
-    readString({ ...response }, 'status') !== 'teammate_spawned'
-  ) {
-    return
-  }
-  const agentId = readString({ ...response }, 'agent_id')
-  const description = readString({ ...input }, 'description')
-  if (agentId && description) {
-    recordClaudeTeammateTaskDescription(
-      state.claudeSubagentRosterByPaneKey.get(paneKey),
-      agentId,
-      description
-    )
-  }
-}
+import { recordClaudeTeammateSpawn } from './claude-teammate-spawn'
 
 export function normalizeClaudeEvent(
   state: HookListenerState,

@@ -417,21 +417,36 @@ describe('claude subagent sidebar row lifecycle', () => {
   it('drops teammates stopped with TaskStop while another teammate stays alive', () => {
     // Shapes captured live on 2.1.308: TaskStop fires no lifecycle hook, and each teammate's
     // background_tasks entry carries its spawn description under an unrelated `t…` id.
-    const spawn = (name: string, agentId: string, description: string): void => {
-      claudeEvent({ hook_event_name: 'SubagentStart', agent_id: agentId, agent_type: name })
-      claudeEvent({
-        hook_event_name: 'PostToolUse',
-        tool_name: 'Agent',
-        tool_input: { description, prompt: `Reply ${name}`, name },
-        tool_response: { status: 'teammate_spawned', agent_id: agentId, name }
-      })
+    const spawn = (
+      name: string,
+      agentId: string,
+      description: string,
+      order: 'start-first' | 'spawn-result-first' = 'start-first'
+    ): void => {
+      const start = () =>
+        claudeEvent({ hook_event_name: 'SubagentStart', agent_id: agentId, agent_type: name })
+      const spawnResult = () =>
+        claudeEvent({
+          hook_event_name: 'PostToolUse',
+          tool_name: 'Agent',
+          tool_input: { description, prompt: `Reply ${name}`, name },
+          tool_response: { status: 'teammate_spawned', agent_id: agentId, name }
+        })
+      if (order === 'start-first') {
+        start()
+        spawnResult()
+      } else {
+        spawnResult()
+        start()
+      }
     }
     const alphaTask = { id: 'tjv37r4y4', type: 'teammate', status: 'running', description: 'Alpha' }
     const betaTask = { id: 'tjint303j', type: 'teammate', status: 'running', description: 'Beta' }
     const gammaTask = { id: 'te1pn74jo', type: 'teammate', status: 'running', description: 'Gamma' }
     claudeEvent({ hook_event_name: 'UserPromptSubmit', prompt: 'start alpha, beta and gamma' })
     spawn('alpha', 'aalpha-b1567bb51740a755', 'Alpha')
-    spawn('beta', 'abeta-1917b198710ec27a', 'Beta')
+    // Hook requests are handled unordered, so the spawn result can land before SubagentStart.
+    spawn('beta', 'abeta-1917b198710ec27a', 'Beta', 'spawn-result-first')
     spawn('gamma', 'agamma-8889833b0c898959', 'Gamma')
     for (const [name, agentId] of [
       ['alpha', 'aalpha-b1567bb51740a755'],
