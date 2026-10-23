@@ -563,14 +563,28 @@ describe('restored editor owner reparent', () => {
     expect(after.activeFileId).toBe(sourceId)
   })
 
-  it('moves the watcher projection from source to destination without fanout', () => {
+  it('consolidates the source and external-path watches after owner reparenting', () => {
     const oldId = openRestoredSource()
     const before = getEditorExternalWatchTargets(useAppStore.getState())
     const result = reparent(oldId)
     expect(result.ok).toBe(true)
     const after = getEditorExternalWatchTargets(useAppStore.getState())
 
-    expect(before.targets.map((target) => target.worktreeId)).toEqual([SOURCE])
+    expect(before.targets).toEqual([
+      {
+        worktreeId: SOURCE,
+        worktreePath: '/repo-a',
+        connectionId: undefined,
+        runtimeEnvironmentId: null
+      },
+      {
+        worktreeId: SOURCE,
+        worktreePath: '/repo-b',
+        connectionId: undefined,
+        runtimeEnvironmentId: null,
+        openFileIds: new Set([oldId])
+      }
+    ])
     expect(after.targets).toEqual([
       {
         worktreeId: TARGET,
@@ -581,7 +595,7 @@ describe('restored editor owner reparent', () => {
     ])
   })
 
-  it('unsubscribes the source watch once and subscribes the destination once', async () => {
+  it('releases the source watch and retains the destination watch during reparenting', async () => {
     const watchWorktree = vi.fn().mockResolvedValue(undefined)
     const unwatchWorktree = vi.fn().mockResolvedValue(undefined)
     const previousApi = (window as unknown as { api?: unknown }).api
@@ -596,11 +610,11 @@ describe('restored editor owner reparent', () => {
     const container = document.body.appendChild(document.createElement('div'))
     const root = createRoot(container)
     await act(async () => root.render(createElement(WatchProbe)))
-    await vi.waitFor(() => expect(watchWorktree).toHaveBeenCalledTimes(1))
-    expect(watchWorktree).toHaveBeenLastCalledWith({
-      worktreePath: '/repo-a',
-      connectionId: undefined
-    })
+    await vi.waitFor(() => expect(watchWorktree).toHaveBeenCalledTimes(2))
+    expect(watchWorktree.mock.calls).toEqual([
+      [{ worktreePath: '/repo-a', connectionId: undefined }],
+      [{ worktreePath: '/repo-b', connectionId: undefined }]
+    ])
 
     await act(async () => {
       expect(reparent(oldId).ok).toBe(true)
@@ -619,6 +633,10 @@ describe('restored editor owner reparent', () => {
     })
 
     await act(async () => root.unmount())
+    expect(unwatchWorktree.mock.calls).toEqual([
+      [{ worktreePath: '/repo-a', connectionId: undefined }],
+      [{ worktreePath: '/repo-b', connectionId: undefined }]
+    ])
     container.remove()
     ;(window as unknown as { api?: unknown }).api = previousApi
   })
