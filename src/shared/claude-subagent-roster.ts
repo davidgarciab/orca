@@ -241,7 +241,7 @@ function isClaudeTeammateDescriptionListed(
   }
   for (const listed of listedDescriptions) {
     // Claude clips inventory descriptions; ambiguous prefix matches must retain every possible owner.
-    const clippingMarker = /… \[\+\d+ chars\]$/.exec(listed)
+    const clippingMarker = /\u2026 \[\+\d+ chars\]$/.exec(listed)
     if (clippingMarker && description.startsWith(listed.slice(0, clippingMarker.index))) {
       return true
     }
