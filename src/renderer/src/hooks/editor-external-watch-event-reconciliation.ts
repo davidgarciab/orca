@@ -101,6 +101,7 @@ export function buildEditorExternalWatchEventHandler(
       worktreeId: target.worktreeId,
       worktreePath: target.worktreePath,
       runtimeEnvironmentId: target.runtimeEnvironmentId,
+      openFileIds: target.openFileIds,
       ...getLocalWindowsWslAliasOption(target)
     })
     supersedeOverflowProbesForBatch(batchPaths, openFilesAtStart)
@@ -166,6 +167,7 @@ export function buildEditorExternalWatchEventHandler(
       for (const file of state.openFiles) {
         if (
           file.worktreeId === target.worktreeId &&
+          (target.openFileIds === undefined || target.openFileIds.has(file.id)) &&
           getOpenFileRuntimeOwner(file) === target.runtimeEnvironmentId &&
           (file.mode === 'edit' || file.mode === 'markdown-preview') &&
           (file.externalMutation === 'deleted' || file.externalMutation === 'renamed') &&

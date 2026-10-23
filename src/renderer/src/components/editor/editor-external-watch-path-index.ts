@@ -13,6 +13,7 @@ type WatchScope = {
   worktreePath: string
   runtimeEnvironmentId: string | null
   allowLocalWindowsWslAliases?: true
+  openFileIds?: ReadonlySet<string>
 }
 
 type IndexedPath = {
@@ -121,7 +122,8 @@ class IndexedOpenFileLookup {
     for (const [index, file] of openFiles.entries()) {
       if (
         file.worktreeId !== scope.worktreeId ||
-        openFileRuntimeOwner(file) !== scope.runtimeEnvironmentId
+        openFileRuntimeOwner(file) !== scope.runtimeEnvironmentId ||
+        (scope.openFileIds !== undefined && !scope.openFileIds.has(file.id))
       ) {
         continue
       }

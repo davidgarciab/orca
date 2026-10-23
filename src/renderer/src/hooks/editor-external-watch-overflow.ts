@@ -5,6 +5,7 @@ import { isExternalReloadableEditorTab } from '@/components/editor/editor-autosa
 import { forgetCombinedDiffViewBodiesForWorktree } from '@/components/editor/combined-diff/remember-view/combined-diff-view-cache'
 import { getRuntimeTargetForFileOwner } from '@/lib/file-owner-runtime-target'
 import { runtimePathsExist } from '@/runtime/runtime-path-existence-batch'
+import { relativePathInsideRoot } from '../../../shared/cross-platform-path'
 import {
   PATH_EXISTENCE_BATCH_MAX,
   type PathExistenceResult
@@ -63,7 +64,7 @@ type OverflowTarget = Pick<EditorExternalWatchTarget, 'worktreeId' | 'worktreePa
   Partial<
     Pick<
       EditorExternalWatchTarget,
-      'connectionId' | 'runtimeEnvironmentId' | 'allowLocalWindowsWslAliases'
+      'connectionId' | 'runtimeEnvironmentId' | 'allowLocalWindowsWslAliases' | 'openFileIds'
     >
   >
 
@@ -81,7 +82,7 @@ type EditTabProbe = {
  * skips that so it never fans out per-tab probes.
  */
 export function reconcileEditorTabsAfterOverflow(target: OverflowTarget, resync: boolean): void {
-  if (resync) {
+  if (resync && !target.openFileIds) {
     // Why: unmounted combined-diff tabs get no per-path reload, so drop their cached bodies before a remount replays them.
     forgetCombinedDiffViewBodiesForWorktree(target.worktreeId)
   }
@@ -90,6 +91,7 @@ export function reconcileEditorTabsAfterOverflow(target: OverflowTarget, resync:
   for (const file of state.openFiles) {
     if (
       file.worktreeId !== target.worktreeId ||
+      (target.openFileIds !== undefined && !target.openFileIds.has(file.id)) ||
       getOpenFileRuntimeOwner(file) !== (target.runtimeEnvironmentId ?? null) ||
       !isExternalReloadableEditorTab(file)
     ) {
@@ -111,12 +113,31 @@ export function reconcileEditorTabsAfterOverflow(target: OverflowTarget, resync:
       }
       continue
     }
+    const relativePath = target.openFileIds
+      ? relativePathInsideRoot(target.worktreePath, file.filePath)
+      : file.relativePath
+    if (relativePath === null) {
+      continue
+    }
     const notification: EditorExternalWatchNotification = {
       worktreeId: target.worktreeId,
       worktreePath: target.worktreePath,
-      relativePath: file.relativePath,
+      relativePath,
       runtimeEnvironmentId: target.runtimeEnvironmentId ?? null,
       ...getLocalWindowsWslAliasOption(target)
+    }
+    if (target.openFileIds) {
+      const fileIds = target.openFileIds
+      notification.indexedOpenFiles = {
+        matches: (openFiles) =>
+          openFiles.filter(
+            (candidate) =>
+              fileIds.has(candidate.id) &&
+              candidate.filePath === file.filePath &&
+              candidate.worktreeId === target.worktreeId &&
+              getOpenFileRuntimeOwner(candidate) === (target.runtimeEnvironmentId ?? null)
+          )
+      }
     }
     if (file.mode !== 'edit' || !resync) {
       // Why: this reload is newer than any pending resync probe for the tab.

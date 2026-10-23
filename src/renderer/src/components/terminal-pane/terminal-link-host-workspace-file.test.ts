@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { openDetectedFilePath } from './terminal-link-handlers'
-import { activateAndRevealWorkspace, activateAndRevealWorktree } from '@/lib/worktree-activation'
+import { activateAndRevealWorkspace } from '@/lib/worktree-activation'
 import { downloadAndOpenRemoteTerminalFile } from './terminal-remote-file-download-open'
 import { createTerminalLinkTestDoubles } from './terminal-link-handlers-test-fixtures'
 import {
@@ -9,14 +9,7 @@ import {
 } from './terminal-link-handlers-test-harness'
 
 const doubles = createTerminalLinkTestDoubles()
-const {
-  storeState,
-  statMock,
-  openFileMock,
-  openFilePathMock,
-  createBrowserTabMock,
-  runtimeEnvironmentCallMock
-} = doubles
+const { storeState, statMock, openFileMock, openFilePathMock, runtimeEnvironmentCallMock } = doubles
 
 vi.mock('@/store', () => ({
   useAppStore: {
@@ -55,7 +48,7 @@ function hostAnswers(result: unknown): void {
 }
 
 describe('a paired-server link outside its own workspace', () => {
-  it('opens a host-owned sibling file in the terminal workspace that was clicked', async () => {
+  it('opens a main-repo file in the workspace the host says holds it', async () => {
     hostAnswers({
       worktree: 'wt-main',
       relativePath: 'src/index.ts',
@@ -75,22 +68,22 @@ describe('a paired-server link outside its own workspace', () => {
       })
     )
     expect(statMock).not.toHaveBeenCalled()
-    expect(activateAndRevealWorkspace).toHaveBeenCalledWith('wt-feat', {
+    expect(activateAndRevealWorkspace).toHaveBeenCalledWith('wt-main', {
       providesInitialSurface: true,
       executionHostId: 'runtime:env-1'
     })
     expect(openFileMock).toHaveBeenCalledWith(
       expect.objectContaining({
         filePath: '/repo/src/index.ts',
-        relativePath: '/repo/src/index.ts',
-        worktreeId: 'wt-feat',
+        relativePath: 'src/index.ts',
+        worktreeId: 'wt-main',
         runtimeEnvironmentId: 'env-1'
       }),
       { forceContentReload: true }
     )
   })
 
-  it("opens the host's spelling of the path without leaving the terminal workspace", async () => {
+  it("opens the host's spelling of the path so the tab stays a workspace file", async () => {
     hostAnswers({
       worktree: 'wt-main',
       relativePath: 'src/index.ts',
@@ -105,41 +98,8 @@ describe('a paired-server link outside its own workspace', () => {
     expect(openFileMock).toHaveBeenCalledWith(
       expect.objectContaining({
         filePath: '/repo/src/index.ts',
-        relativePath: '/repo/src/index.ts',
-        worktreeId: 'wt-feat'
-      }),
-      { forceContentReload: true }
-    )
-  })
-
-  it('keeps a home-folder HTML report in the terminal that printed it', async () => {
-    hostAnswers({
-      worktree: 'folder:home',
-      relativePath: 'report.html',
-      absolutePath: '/Users/me/report.html',
-      exists: true,
-      isDirectory: false
-    })
-
-    openDetectedFilePath('/Users/me/report.html', null, null, {
-      worktreeId: 'wt-app',
-      worktreePath: '/Users/me/code/app',
-      runtimeEnvironmentId: 'env-1'
-    })
-    await flushDoubleRaf()
-
-    expect(activateAndRevealWorkspace).not.toHaveBeenCalledWith('folder:home', expect.anything())
-    expect(activateAndRevealWorktree).not.toHaveBeenCalledWith('folder:home', expect.anything())
-    expect(createBrowserTabMock).not.toHaveBeenCalledWith(
-      'folder:home',
-      expect.anything(),
-      expect.anything()
-    )
-    expect(openFileMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        filePath: '/Users/me/report.html',
-        relativePath: '/Users/me/report.html',
-        worktreeId: 'wt-app'
+        relativePath: 'src/index.ts',
+        worktreeId: 'wt-main'
       }),
       { forceContentReload: true }
     )

@@ -17,6 +17,7 @@ import {
   resolveEditorExternalWatchTargetRows
 } from './editor-external-watch-target-rows'
 import { selectWatchEligibleWorkspaceIds } from './editor-external-watch-scope'
+import { selectLocalExternalFileWatchTargets } from './editor-external-file-watch-targets'
 import { selectFolderWorkspaces, selectWorktreesByRepo } from '@/store/workspace-record-selectors'
 
 export type EditorExternalWatchTarget = {
@@ -25,6 +26,7 @@ export type EditorExternalWatchTarget = {
   connectionId: string | undefined
   runtimeEnvironmentId: string | null
   allowLocalWindowsWslAliases?: true
+  openFileIds?: ReadonlySet<string>
 }
 
 export type EditorExternalWatchTargetState = Pick<
@@ -45,7 +47,10 @@ export type EditorExternalWatchTargetState = Pick<
   Partial<
     Pick<
       AppState,
-      'activeWorkspaceExecutionHostId' | 'rightSidebarEffectiveTab' | 'lastVisitedAtByWorktreeId'
+      | 'activeWorkspaceExecutionHostId'
+      | 'rightSidebarEffectiveTab'
+      | 'lastVisitedAtByWorktreeId'
+      | 'activeFileId'
     >
   >
 
@@ -72,6 +77,7 @@ let cachedSshConnectionStates: AppState['sshConnectionStates'] | null = null
 let cachedFolderWorkspaces: AppState['folderWorkspaces'] | null = null
 let cachedProjectGroups: AppState['projectGroups'] | null = null
 let cachedLastVisitedAtByWorktreeId: AppState['lastVisitedAtByWorktreeId'] | undefined
+let cachedActiveFileId: AppState['activeFileId'] | undefined
 let cachedWatchedTargetsSnapshot: WatchedTargetsSnapshot = {
   targets: [],
   targetsKey: '',
@@ -164,7 +170,8 @@ export function selectEditorExternalWatchTargets(
     cachedSshConnectionStates === state.sshConnectionStates &&
     cachedFolderWorkspaces === selectFolderWorkspaces(state) &&
     cachedProjectGroups === state.projectGroups &&
-    cachedLastVisitedAtByWorktreeId === state.lastVisitedAtByWorktreeId
+    cachedLastVisitedAtByWorktreeId === state.lastVisitedAtByWorktreeId &&
+    cachedActiveFileId === state.activeFileId
   ) {
     return cachedWatchedTargetsSnapshot
   }
@@ -225,10 +232,15 @@ export function selectEditorExternalWatchTargets(
   }
 
   const targetsByKey = resolveWatchTargets(state, consumersByWorktreeId)
+  const externalTargets = selectLocalExternalFileWatchTargets(state, watchEligibleIds)
+  for (const target of externalTargets.watched) {
+    targetsByKey.set(getEditorExternalWatchTargetKey(target), target)
+  }
   const unwatchedTargetKeys = new Set(
-    [...resolveWatchTargets(state, unwatchedConsumersByWorktreeId).keys()].filter(
-      (key) => !targetsByKey.has(key)
-    )
+    [
+      ...resolveWatchTargets(state, unwatchedConsumersByWorktreeId).keys(),
+      ...externalTargets.unwatched.map(getEditorExternalWatchTargetKey)
+    ].filter((key) => !targetsByKey.has(key))
   )
 
   // Why: consumers on one host (an unqualified legacy tab and its captured sibling) collapse to one watch.
@@ -236,7 +248,11 @@ export function selectEditorExternalWatchTargets(
     left.localeCompare(right)
   )
   const nextTargets = sortedEntries.map(([, target]) => target)
-  const targetsKey = sortedEntries.map(([key]) => key).join('|')
+  const targetsKey = sortedEntries
+    .map(([key, target]) =>
+      target.openFileIds ? `${key}::${JSON.stringify([...target.openFileIds].sort())}` : key
+    )
+    .join('|')
   const unwatchedTargetsKey = [...unwatchedTargetKeys].sort().join('|')
   cachedOpenFiles = state.openFiles
   cachedWorktreesByRepo = selectWorktreesByRepo(state)
@@ -253,6 +269,7 @@ export function selectEditorExternalWatchTargets(
   cachedFolderWorkspaces = selectFolderWorkspaces(state)
   cachedProjectGroups = state.projectGroups
   cachedLastVisitedAtByWorktreeId = state.lastVisitedAtByWorktreeId
+  cachedActiveFileId = state.activeFileId
 
   if (
     targetsKey === cachedWatchedTargetsSnapshot.targetsKey &&

@@ -35,7 +35,7 @@ const pendingExternalReloads = new Map<string, EditorExternalWatchNotification>(
 export function scheduleDebouncedEditorExternalReload(
   notification: EditorExternalWatchNotification
 ): void {
-  const key = `${notification.worktreeId}::${notification.runtimeEnvironmentId ?? 'client'}::${notification.relativePath}`
+  const key = `${notification.worktreeId}::${notification.runtimeEnvironmentId ?? 'client'}::${joinPath(notification.worktreePath, notification.relativePath)}`
   const armed = pendingExternalReloads.has(key)
   pendingExternalReloads.set(key, notification)
   if (armed) {
