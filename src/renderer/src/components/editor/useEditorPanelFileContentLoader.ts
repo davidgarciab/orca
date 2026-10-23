@@ -164,7 +164,12 @@ export function useEditorPanelFileContentLoader({
             const route = isFloatingWorkspaceId(worktreeId)
               ? null
               : findWorkspaceFileRoute(currentState, executionHostId, filePath)
-            if (route && route.worktreeId !== worktreeId) {
+            if (route && route.worktreeId !== restoredOpenFile.worktreeId) {
+              // Why: another workspace containing the path is not a request to leave this one
+              // (#32158). Read through the owner so paired-server files.read still has a relative path.
+              readWorktreeId = route.worktreeId
+              readRelativePath = route.relativePath
+            } else if (route && route.worktreeId !== worktreeId) {
               await reownRestoredFile(route, runtimeEnvironmentId ?? null)
               return
             }

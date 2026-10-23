@@ -167,7 +167,7 @@ describe('remote sibling editor content routing', () => {
     )
   })
 
-  it('atomically reparents an unstamped sibling file before reading', async () => {
+  it('keeps an unstamped sibling file in the workspace that opened it', async () => {
     const activeFile = createOpenFile({
       id: '/work/repo-b/docs/readme.md',
       filePath: '/work/repo-b/docs/readme.md',
@@ -180,42 +180,17 @@ describe('remote sibling editor content routing', () => {
       executionHostId: 'runtime:runtime-1'
     } as const
     mocks.findWorkspaceFileRoute.mockReturnValue(route)
+    mocks.readRuntimeFileContent.mockResolvedValue({ content: '# readme', isBinary: false })
 
     await act(async () => root?.render(<HookProbe activeFile={activeFile} />))
 
-    await vi.waitFor(() =>
-      expect(mocks.migrateRestoredEditorFileOwner).toHaveBeenCalledWith(
-        activeFile.id,
-        route,
-        'runtime-1'
-      )
-    )
-    expect(mocks.readRuntimeFileContent).not.toHaveBeenCalled()
-  })
-
-  it('reports a sibling-owner collision instead of remaining in loading state', async () => {
-    const activeFile = createOpenFile({
-      id: '/work/repo-b/docs/readme.md',
-      filePath: '/work/repo-b/docs/readme.md',
-      relativePath: '/work/repo-b/docs/readme.md',
-      worktreeId: 'repo-a::/work/repo-a'
-    })
-    mocks.findWorkspaceFileRoute.mockReturnValue({
-      worktreeId: 'repo-b::/work/repo-b',
-      relativePath: 'docs/readme.md',
-      executionHostId: 'runtime:runtime-1'
-    })
-    mocks.migrateRestoredEditorFileOwner.mockResolvedValue({
-      ok: false,
-      reason: 'collision'
-    })
-
-    await act(async () => root?.render(<HookProbe activeFile={activeFile} />))
-
-    await vi.waitFor(() =>
-      expect(latestFileContents[activeFile.id]?.loadError).toBe(
-        'The sibling file is already open; close one tab before restoring it.'
-      )
+    await vi.waitFor(() => expect(latestFileContents[activeFile.id]?.content).toBe('# readme'))
+    expect(mocks.migrateRestoredEditorFileOwner).not.toHaveBeenCalled()
+    expect(mocks.readRuntimeFileContent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        worktreeId: 'repo-b::/work/repo-b',
+        relativePath: 'docs/readme.md'
+      })
     )
   })
 })

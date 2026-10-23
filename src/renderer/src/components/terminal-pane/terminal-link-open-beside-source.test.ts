@@ -164,7 +164,7 @@ describe('terminal file links carry their source tab', () => {
     expect(toastErrorMock).toHaveBeenCalledTimes(1)
   })
 
-  it('refuses an explicit request routed to another workspace before activating it', async () => {
+  it('keeps an explicit group request in the source workspace when another workspace also contains the file', async () => {
     setPlatform('Macintosh')
     seedSourceTab()
     storeState.openFiles = [{ filePath: '/other/x.ts', worktreeId: 'wt-2' }]
@@ -177,9 +177,18 @@ describe('terminal file links carry their source tab', () => {
     openDetectedFilePath('/other/x.ts', null, null, { ...sourceDeps, openInSourceGroup: true })
     await flushAsyncWork()
 
-    expect(activateAndRevealWorkspace).not.toHaveBeenCalled()
-    expect(openFileForLinkMock).not.toHaveBeenCalled()
-    expect(toastErrorMock).toHaveBeenCalledTimes(1)
+    expect(findWorkspaceFileRouteMock).not.toHaveBeenCalled()
+    expect(activateAndRevealWorkspace).toHaveBeenCalledWith('wt-1', {
+      providesInitialSurface: true,
+      executionHostId: 'local'
+    })
+    expect(openFileForLinkMock).toHaveBeenCalledWith(
+      expect.objectContaining({ filePath: '/other/x.ts', worktreeId: 'wt-1' }),
+      expect.anything(),
+      expect.objectContaining({ targetGroupId: 'group-a' }),
+      expect.any(Function)
+    )
+    expect(toastErrorMock).not.toHaveBeenCalled()
   })
 
   it('keeps automatic HTML opens on their existing browser route', async () => {
