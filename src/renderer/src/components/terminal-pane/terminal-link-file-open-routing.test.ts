@@ -118,7 +118,7 @@ describe('handleOscLink', () => {
     })
   })
 
-  it('opens a sibling folder-workspace path under its owning host and workspace', async () => {
+  it('keeps a sibling folder-workspace path in the terminal workspace that was clicked', async () => {
     const filePath = '/sibling/docs/SKILL.md'
     storeState.openFiles = [{ filePath, worktreeId: 'folder:notes' }]
     findWorkspaceFileRouteMock.mockReturnValueOnce({
@@ -126,28 +126,23 @@ describe('handleOscLink', () => {
       relativePath: 'docs/SKILL.md',
       executionHostId: 'local'
     })
-    openFileMock.mockImplementationOnce(() => {
-      storeState.activeFileIdByWorktree['folder:notes'] = 'owned-skill'
-    })
 
     openDetectedFilePath(filePath, 12, null, deps)
     await flushAsyncWork()
     await flushDoubleRaf()
 
-    expect(activateAndRevealWorkspace).toHaveBeenCalledWith('folder:notes', {
+    expect(findWorkspaceFileRouteMock).not.toHaveBeenCalled()
+    expect(activateAndRevealWorkspace).toHaveBeenCalledWith('wt-1', {
       providesInitialSurface: true,
       executionHostId: 'local'
     })
     expect(openFileMock).toHaveBeenCalledWith(
       expect.objectContaining({
         filePath,
-        relativePath: 'docs/SKILL.md',
-        worktreeId: 'folder:notes'
+        relativePath: filePath,
+        worktreeId: 'wt-1'
       }),
       { forceContentReload: true }
-    )
-    expect(setPendingEditorRevealMock).toHaveBeenLastCalledWith(
-      expect.objectContaining({ fileId: 'owned-skill' })
     )
   })
 

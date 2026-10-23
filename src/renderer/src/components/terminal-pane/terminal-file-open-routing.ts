@@ -1,7 +1,6 @@
 import { absolutePathToFileUri } from '@/components/editor/markdown-internal-links'
 import { getWorkspaceFilePreviewPlan, openFileInBrowserTab } from '@/lib/file-preview'
 import { downloadAndOpenRemoteTerminalFile } from './terminal-remote-file-download-open'
-import { findWorkspaceFileRoute } from '@/lib/runtime-workspace-file-route'
 import { isPathInsideWorktree, toWorktreeRelativePath } from '@/lib/terminal-links'
 import { canClientOsOpenWorkspaceFile } from '@/lib/workspace-file-host-routing'
 import { isMissingRuntimePathError } from '@/runtime/runtime-file-metadata-client'
@@ -25,7 +24,6 @@ import {
   resolveHostWorkspaceFile,
   type HostWorkspaceFile
 } from './terminal-host-workspace-file'
-import { isFloatingWorkspaceId } from '../../../../shared/floating-workspace-worktree'
 import { captureEditorOpenLinkIntent } from '@/store/slices/editor/tabs/editor-open-target-group'
 import { cancelPendingEditorLineRevealFrames } from '@/store/slices/editor/focus/editor-focus-reveal'
 import { showOpenInGroupRefusedToast } from './terminal-file-open-in-group-toast'
@@ -183,10 +181,18 @@ export function openDetectedFilePath(
         statResult = { isDirectory: linkOwner.isDirectory, escapesWorktree: false }
       } else if (linkOwner) {
         hostWorkspaceFile = linkOwner
-        // Why: the host already stat'ed the path inside the workspace that holds it; open it there.
-        ;({ worktreeId, worktreePath, absolutePath: mappedFilePath } = hostWorkspaceFile)
-        fileContext = { ...fileContext, worktreeId, worktreePath }
-        statResult = { isDirectory: hostWorkspaceFile.isDirectory, escapesWorktree: false }
+        mappedFilePath = hostWorkspaceFile.absolutePath
+        if (hostWorkspaceFile.worktreeId === worktreeId) {
+          ;({ worktreePath } = hostWorkspaceFile)
+          fileContext = { ...fileContext, worktreeId, worktreePath }
+          statResult = { isDirectory: hostWorkspaceFile.isDirectory, escapesWorktree: false }
+        } else {
+          // Why: another workspace containing the path is not a request to leave this one (#32158).
+          statResult = {
+            isDirectory: hostWorkspaceFile.isDirectory,
+            escapesWorktree: !(worktreePath && isPathInsideWorktree(mappedFilePath, worktreePath))
+          }
+        }
       } else {
         statResult = await statUserOpenedPath(fileContext, mappedFilePath)
       }
@@ -232,7 +238,15 @@ export function openDetectedFilePath(
     if (openWithSystemDefault && !canOpenWithSystemDefault && hostGrantId === null) {
       // Why: the popover names Shift+Cmd/Ctrl "Download & open with default app", and the OS
       // cannot launch a remote path, so the direct gesture must reach the same download.
-      await downloadAndOpenRemoteTerminalFile(fileContext, mappedFilePath)
+      const downloadContext =
+        hostWorkspaceFile && hostWorkspaceFile.worktreeId !== worktreeId
+          ? {
+              ...fileContext,
+              worktreeId: hostWorkspaceFile.worktreeId,
+              worktreePath: hostWorkspaceFile.worktreePath
+            }
+          : fileContext
+      await downloadAndOpenRemoteTerminalFile(downloadContext, mappedFilePath)
       return
     }
 
@@ -260,7 +274,6 @@ export function openDetectedFilePath(
       }
     }
 
-    const store = useAppStore.getState()
     let targetWorktreeId = worktreeId
     const runtimeOwnerId = runtimeTargetEnvironmentId(fileContext.target) ?? sourceRuntimeOwnerId
     let targetExecutionHostId =
@@ -275,20 +288,6 @@ export function openDetectedFilePath(
       // the user named, before and after a restart, instead of being refused as a project file.
       if (maybeRelative !== null && maybeRelative.length > 0 && !statResult.escapesWorktree) {
         relativePath = maybeRelative
-      }
-    } else if (
-      hostGrantId === null &&
-      !isFloatingWorkspaceId(worktreeId) &&
-      store.openFiles.some(
-        (openFile) => openFile.filePath === mappedFilePath && openFile.worktreeId !== worktreeId
-      )
-    ) {
-      // Why: early resolution is only needed to avoid an existing sibling-tab collision.
-      const siblingRoute = findWorkspaceFileRoute(store, targetExecutionHostId, mappedFilePath)
-      if (siblingRoute) {
-        targetWorktreeId = siblingRoute.worktreeId
-        targetExecutionHostId = siblingRoute.executionHostId
-        relativePath = siblingRoute.relativePath
       }
     }
 
