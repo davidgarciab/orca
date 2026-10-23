@@ -1,6 +1,6 @@
 import type { OpenFile } from '@/store/slices/editor'
 import { resolveOwner } from '@/lib/resolve-owner'
-import { findRepoForHost } from '@/store/slices/repo-host-identity'
+import { repoMatchesHostIdentity } from '@/store/slices/repo-host-identity'
 import { getIndexedAllWorktrees } from '@/store/worktree-repo-index'
 import {
   selectDetectedWorktreesByRepo,
@@ -64,7 +64,7 @@ export function selectLocalExternalFileWatchTargets(
 ): { watched: EditorExternalWatchTarget[]; unwatched: EditorExternalWatchTarget[] } {
   const roots: RuntimeWorkspaceFileRoot[] = []
   for (const worktree of getIndexedAllWorktrees(selectWorktreesByRepo(state))) {
-    const repo = findRepoForHost(state.repos, worktree.repoId, { hostId: 'local' })
+    const repo = state.repos.find((row) => repoMatchesHostIdentity(row, worktree.repoId, 'local'))
     if (worktree.hostId === 'local' && repo?.executionHostId === 'local' && !repo.connectionId) {
       roots.push({ workspaceId: worktree.id, rootPath: worktree.path, executionHostId: 'local' })
     }
