@@ -4,8 +4,13 @@ import type { EditorExternalWatchBatchPathIndex } from '@/components/editor/edit
 import { isExternalReloadableEditorTab } from '@/components/editor/editor-autosave'
 import { forgetCombinedDiffViewBodiesForWorktree } from '@/components/editor/combined-diff/remember-view/combined-diff-view-cache'
 import { getRuntimeTargetForFileOwner } from '@/lib/file-owner-runtime-target'
+import { joinPath } from '@/lib/path'
 import { runtimePathsExist } from '@/runtime/runtime-path-existence-batch'
-import { relativePathInsideRoot } from '../../../shared/cross-platform-path'
+import {
+  areLocalWindowsWslPathAliases,
+  relativePathInsideRoot
+} from '../../../shared/cross-platform-path'
+import { isLocalEditorWatchFile } from './editor-external-file-watch-targets'
 import {
   PATH_EXISTENCE_BATCH_MAX,
   type PathExistenceResult
@@ -94,6 +99,22 @@ export function reconcileEditorTabsAfterOverflow(target: OverflowTarget, resync:
       (target.openFileIds !== undefined && !target.openFileIds.has(file.id)) ||
       getOpenFileRuntimeOwner(file) !== (target.runtimeEnvironmentId ?? null) ||
       !isExternalReloadableEditorTab(file)
+    ) {
+      continue
+    }
+    if (
+      !target.openFileIds &&
+      !target.runtimeEnvironmentId &&
+      !target.connectionId &&
+      isLocalEditorWatchFile(file, state) &&
+      relativePathInsideRoot(target.worktreePath, file.filePath) === null &&
+      !(
+        getLocalWindowsWslAliasOption(target).allowLocalWindowsWslAliases &&
+        areLocalWindowsWslPathAliases(
+          file.filePath,
+          joinPath(target.worktreePath, file.relativePath)
+        )
+      )
     ) {
       continue
     }

@@ -18,7 +18,11 @@ import {
 } from './editor-external-watch-target-rows'
 import { selectWatchEligibleWorkspaceIds } from './editor-external-watch-scope'
 import { selectLocalExternalFileWatchTargets } from './editor-external-file-watch-targets'
-import { selectFolderWorkspaces, selectWorktreesByRepo } from '@/store/workspace-record-selectors'
+import {
+  selectDetectedWorktreesByRepo,
+  selectFolderWorkspaces,
+  selectWorktreesByRepo
+} from '@/store/workspace-record-selectors'
 
 export type EditorExternalWatchTarget = {
   worktreeId: string
@@ -51,6 +55,7 @@ export type EditorExternalWatchTargetState = Pick<
       | 'rightSidebarEffectiveTab'
       | 'lastVisitedAtByWorktreeId'
       | 'activeFileId'
+      | 'detectedWorktreesByRepo'
     >
   >
 
@@ -64,6 +69,7 @@ type WatchedTargetsSnapshot = {
 
 let cachedOpenFiles: AppState['openFiles'] | null = null
 let cachedWorktreesByRepo: AppState['worktreesByRepo'] | null = null
+let cachedDetectedWorktreesByRepo: AppState['detectedWorktreesByRepo'] | undefined
 let cachedRepos: AppState['repos'] | null = null
 let cachedActiveWorktreeId: string | null = null
 let cachedActiveWorkspaceExecutionHostId: AppState['activeWorkspaceExecutionHostId'] = null
@@ -158,6 +164,7 @@ export function selectEditorExternalWatchTargets(
   if (
     cachedOpenFiles === state.openFiles &&
     cachedWorktreesByRepo === selectWorktreesByRepo(state) &&
+    cachedDetectedWorktreesByRepo === selectDetectedWorktreesByRepo(state) &&
     cachedRepos === state.repos &&
     cachedActiveWorktreeId === state.activeWorktreeId &&
     cachedActiveWorkspaceExecutionHostId === activeWorkspaceExecutionHostId &&
@@ -256,6 +263,7 @@ export function selectEditorExternalWatchTargets(
   const unwatchedTargetsKey = [...unwatchedTargetKeys].sort().join('|')
   cachedOpenFiles = state.openFiles
   cachedWorktreesByRepo = selectWorktreesByRepo(state)
+  cachedDetectedWorktreesByRepo = selectDetectedWorktreesByRepo(state)
   cachedRepos = state.repos
   cachedActiveWorktreeId = state.activeWorktreeId
   cachedActiveWorkspaceExecutionHostId = activeWorkspaceExecutionHostId

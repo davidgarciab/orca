@@ -268,6 +268,71 @@ describe('external local files through the real watcher selector and event pipel
     expect(reloads.sort()).toEqual(['first', 'inside', 'second'])
   })
 
+  it.each([null, undefined])(
+    'leaves a %s-owner external tombstone to its physical-root resync when the source root overflows',
+    async (runtimeEnvironmentId) => {
+      currentState().openFiles = [
+        tab('external', '/container/report.txt', {
+          externalMutation: 'deleted',
+          runtimeEnvironmentId
+        }),
+        tab('inside', '/container/a/report.txt', { relativePath: 'report.txt' })
+      ]
+      await render()
+      emit({
+        worktreePath: '/container/a',
+        events: [{ kind: 'overflow', absolutePath: '/container/a' }]
+      })
+      await advance()
+      expect(currentState().openFiles[0].externalMutation).toBe('deleted')
+      expect(mutation).not.toHaveBeenCalledWith('external', null)
+      expect(reloads).toEqual(['inside'])
+      exists.mockResolvedValueOnce([{ exists: false }])
+      emit({
+        worktreePath: '/container',
+        events: [{ kind: 'overflow', absolutePath: '/container' }],
+        resync: true
+      })
+      await advance()
+      expect(currentState().openFiles[0].externalMutation).toBe('deleted')
+      expect(reloads).toEqual(['inside'])
+      emit({
+        worktreePath: '/container',
+        events: [{ kind: 'overflow', absolutePath: '/container' }],
+        resync: true
+      })
+      await advance()
+      expect(currentState().openFiles[0].externalMutation).toBeUndefined()
+      expect(reloads).toEqual(['inside', 'external'])
+    }
+  )
+
+  it.each([
+    [
+      String.raw`\\wsl.localhost\Ubuntu\container\a`,
+      String.raw`\\wsl$\Ubuntu\container\a\report.txt`
+    ],
+    [String.raw`C:\container\a`, '//wsl.localhost/Ubuntu/mnt/c/container/a/report.txt']
+  ])(
+    'preserves ordinary local WSL alias overflow reloads under %s',
+    async (watchRoot, aliasPath) => {
+      vi.stubGlobal('navigator', { userAgent: 'Windows' })
+      currentState().repos = currentState().repos.map((repo) => ({ ...repo, path: watchRoot }))
+      currentState().worktreesByRepo = {
+        repo: [makeWorktree({ id: 'a', repoId: 'repo', path: watchRoot, hostId: 'local' })]
+      }
+      currentState().folderWorkspaces = []
+      currentState().openFiles = [tab('external', aliasPath, { relativePath: 'report.txt' })]
+      await render()
+      expect(
+        selectEditorExternalWatchTargets(currentState()).targets[0]?.allowLocalWindowsWslAliases
+      ).toBe(true)
+      emit({ worktreePath: watchRoot, events: [{ kind: 'overflow', absolutePath: watchRoot }] })
+      await advance()
+      expect(reloads).toEqual(['external'])
+    }
+  )
+
   it('catches up a trimmed external root on selection using the correct physical path and per-file scope', async () => {
     const files = Array.from({ length: WARM_RECURSIVE_WATCH_WORKSPACE_COUNT + 2 }, (_, i) =>
       tab(`file-${i}`, `/external-${i}/report.txt`)

@@ -1,7 +1,12 @@
 import type { OpenFile } from '@/store/slices/editor'
+import { resolveOwner } from '@/lib/resolve-owner'
 import { findRepoForHost } from '@/store/slices/repo-host-identity'
 import { getIndexedAllWorktrees } from '@/store/worktree-repo-index'
-import { selectFolderWorkspaces, selectWorktreesByRepo } from '@/store/workspace-record-selectors'
+import {
+  selectDetectedWorktreesByRepo,
+  selectFolderWorkspaces,
+  selectWorktreesByRepo
+} from '@/store/workspace-record-selectors'
 import {
   findRuntimeWorkspaceFileOwner,
   type RuntimeWorkspaceFileRoot
@@ -16,15 +21,40 @@ import type {
   EditorExternalWatchTargetState
 } from './editor-external-watch-targets'
 import { WARM_RECURSIVE_WATCH_WORKSPACE_COUNT } from './editor-external-watch-scope'
+import {
+  canWatchLocalWindowsWslAliases,
+  resolveEditorExternalWatchTargetRows
+} from './editor-external-watch-target-rows'
 
-function isLocalFile(file: OpenFile): boolean {
+export function isLocalEditorWatchFile(
+  file: OpenFile,
+  state: EditorExternalWatchTargetState
+): boolean {
   const capturedHost = file.operationProvenance?.generation.route.executionHostId
+  if (
+    (file.mode !== 'edit' && file.mode !== 'markdown-preview') ||
+    file.runtimeEnvironmentId?.trim() ||
+    file.externalSshTargetId ||
+    (capturedHost && capturedHost !== 'local')
+  ) {
+    return false
+  }
+  if (file.runtimeEnvironmentId === null || capturedHost === 'local') {
+    return true
+  }
+  // Why: selection cannot disambiguate an unstamped restored tab's same-id host twins.
+  const owner = resolveOwner(
+    {
+      repos: state.repos,
+      worktreesByRepo: selectWorktreesByRepo(state),
+      detectedWorktreesByRepo: selectDetectedWorktreesByRepo(state),
+      folderWorkspaces: selectFolderWorkspaces(state),
+      projectGroups: state.projectGroups
+    },
+    { workspaceId: file.worktreeId }
+  )
   return (
-    (file.mode === 'edit' || file.mode === 'markdown-preview') &&
-    !file.runtimeEnvironmentId?.trim() &&
-    !file.externalSshTargetId &&
-    (file.runtimeEnvironmentId === null || capturedHost === 'local') &&
-    (!capturedHost || capturedHost === 'local')
+    owner.kind === 'resolved' && owner.owner.endpoint.kind === 'self' && owner.owner.at === 'local'
   )
 }
 
@@ -52,7 +82,7 @@ export function selectLocalExternalFileWatchTargets(
   const targets = new Map<string, EditorExternalWatchTarget & { openFileIds: Set<string> }>()
   const activeRoots = new Set<string>()
   for (const file of state.openFiles.toReversed()) {
-    if (!isLocalFile(file)) {
+    if (!isLocalEditorWatchFile(file, state)) {
       continue
     }
     const source = sourceRoots.get(file.worktreeId)
@@ -67,12 +97,21 @@ export function selectLocalExternalFileWatchTargets(
     const key = `${file.worktreeId}::${rootKey}`
     let target = targets.get(key)
     if (!target) {
+      const rows = resolveEditorExternalWatchTargetRows(state, owner.workspaceId, 'local')
       target = {
         worktreeId: file.worktreeId,
         worktreePath: owner.rootPath,
         connectionId: undefined,
         runtimeEnvironmentId: null,
-        openFileIds: new Set()
+        openFileIds: new Set(),
+        ...(rows &&
+        canWatchLocalWindowsWslAliases({
+          ...rows,
+          worktreePath: owner.rootPath,
+          runtimeEnvironmentId: null
+        })
+          ? { allowLocalWindowsWslAliases: true as const }
+          : {})
       }
       targets.set(key, target)
     }

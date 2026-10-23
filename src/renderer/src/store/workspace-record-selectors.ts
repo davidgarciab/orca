@@ -31,9 +31,9 @@ export function selectFolderWorkspaces(
 }
 
 /** Checkouts git reports that Orca does not track, per repo id. */
-export function selectDetectedWorktreesByRepo(
-  state: Pick<AppState, 'detectedWorktreesByRepo'>
-): AppState['detectedWorktreesByRepo'] {
+export function selectDetectedWorktreesByRepo<
+  T extends Partial<Pick<AppState, 'detectedWorktreesByRepo'>>
+>(state: T): T['detectedWorktreesByRepo'] {
   return state.detectedWorktreesByRepo
 }
 
