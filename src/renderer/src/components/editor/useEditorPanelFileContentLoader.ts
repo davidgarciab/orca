@@ -167,7 +167,8 @@ export function useEditorPanelFileContentLoader({
             if (
               route &&
               route.worktreeId !== worktreeId &&
-              (readTarget.kind === 'environment' || route.worktreeId === restoredOpenFile.worktreeId)
+              (readTarget.kind === 'environment' ||
+                route.worktreeId === restoredOpenFile.worktreeId)
             ) {
               await reownRestoredFile(route, runtimeEnvironmentId ?? null)
               return
