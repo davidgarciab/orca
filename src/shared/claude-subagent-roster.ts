@@ -219,7 +219,10 @@ export function foldClaudeBackgroundTasksIntoRoster(
         !(
           listedTeammateDescriptions !== null &&
           tracked.teammateTaskDescription !== undefined &&
-          !listedTeammateDescriptions.has(tracked.teammateTaskDescription)
+          !isClaudeTeammateDescriptionListed(
+            tracked.teammateTaskDescription,
+            listedTeammateDescriptions
+          )
         )
       ) {
         continue
@@ -227,6 +230,23 @@ export function foldClaudeBackgroundTasksIntoRoster(
       roster.delete(id)
     }
   }
+}
+
+function isClaudeTeammateDescriptionListed(
+  description: string,
+  listedDescriptions: ReadonlySet<string>
+): boolean {
+  if (listedDescriptions.has(description)) {
+    return true
+  }
+  for (const listed of listedDescriptions) {
+    // Claude clips inventory descriptions; ambiguous prefix matches must retain every possible owner.
+    const clippingMarker = /… \[\+\d+ chars\]$/.exec(listed)
+    if (clippingMarker && description.startsWith(listed.slice(0, clippingMarker.index))) {
+      return true
+    }
+  }
+  return false
 }
 
 /** Remember which `background_tasks` description lists a teammate the lead's Agent call spawned. */
