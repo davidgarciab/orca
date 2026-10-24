@@ -472,20 +472,47 @@ describe('claude subagent sidebar row lifecycle', () => {
     ])
   })
 
-  it('keeps a working teammate whose inventory description was clipped while reaping a stopped sibling', () => {
-    const description = `Review ${'x'.repeat(1100)}`
-    const clipped = `${description.slice(0, 1000)}… [+107 chars]`
+  it.each([
+    {
+      kind: 'clipped',
+      spawned: `Review ${'x'.repeat(1100)}`,
+      listed: `Review ${'x'.repeat(993)}… [+107 chars]`
+    },
+    { kind: 'whitespace-collapsed', spawned: ' Review\n  the   diff ', listed: 'Review the diff' }
+  ])(
+    'keeps a working teammate whose inventory description was $kind while reaping a stopped sibling',
+    ({ spawned, listed }) => {
+      spawnTeammate('alpha', 'aalpha-b1567bb51740a755', 'Alpha')
+      spawnTeammate('beta', 'abeta-1917b198710ec27a', spawned)
+
+      const stop = claudeEvent({
+        hook_event_name: 'Stop',
+        background_tasks: [
+          { id: 'tbeta', type: 'teammate', status: 'running', description: listed }
+        ]
+      })
+      expect(stop?.payload.subagents).toEqual([
+        expect.objectContaining({ id: 'abeta-1917b198710ec27a', state: 'working' })
+      ])
+      expect(stop?.payload.state).toBe('working')
+    }
+  )
+
+  it('keeps every teammate when a listed teammate matches no recorded spawn description', () => {
     spawnTeammate('alpha', 'aalpha-b1567bb51740a755', 'Alpha')
-    spawnTeammate('beta', 'abeta-1917b198710ec27a', description)
+    spawnTeammate('beta', 'abeta-1917b198710ec27a', 'Beta')
 
     const stop = claudeEvent({
       hook_event_name: 'Stop',
-      background_tasks: [{ id: 'tbeta', type: 'teammate', status: 'running', description: clipped }]
+      background_tasks: [
+        { id: 'tbeta', type: 'teammate', status: 'running', description: 'Beta' },
+        { id: 'tother', type: 'teammate', status: 'running', description: 'Beta, reworded' }
+      ]
     })
     expect(stop?.payload.subagents).toEqual([
+      expect.objectContaining({ id: 'aalpha-b1567bb51740a755', state: 'working' }),
       expect.objectContaining({ id: 'abeta-1917b198710ec27a', state: 'working' })
     ])
-    expect(stop?.payload.state).toBe('working')
   })
 
   it.each(['identical descriptions', 'clipped descriptions'])('keeps ambiguous %s', (kind) => {

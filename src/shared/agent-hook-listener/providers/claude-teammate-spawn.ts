@@ -26,7 +26,10 @@ export function recordClaudeTeammateSpawn(
     return
   }
   const agentId = readString({ ...response }, 'agent_id')
+  // Why: Claude registers the teammate task under the whitespace-collapsed spawn description.
   const description = readString({ ...input }, 'description')
+    ?.replace(/\s+/g, ' ')
+    .trim()
   if (agentId && description && isClaudeTeammateLifecycleId(agentId)) {
     recordClaudeTeammateTaskDescription(
       getOrCreateClaudeSubagentRoster(state, paneKey),

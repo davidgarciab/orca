@@ -159,12 +159,7 @@ export function foldClaudeBackgroundTasksIntoRoster(
   }
   const listedIds = new Set<string>()
   const hasTeammateTypedTask = tasks.some((task) => task.teammate)
-  // Why: an undescribed teammate entry could be any teammate, so then no row is proven stopped.
-  const listedTeammateDescriptions = tasks.every((task) => !task.teammate || task.description)
-    ? new Set(
-        tasks.flatMap((task) => (task.teammate && task.description ? [task.description] : []))
-      )
-    : null
+  const listedTeammateDescriptions = readProvableClaudeTeammateDescriptions(roster, tasks)
   for (const task of tasks) {
     if (task.teammate) {
       continue
@@ -232,17 +227,48 @@ export function foldClaudeBackgroundTasksIntoRoster(
   }
 }
 
+/** Listed teammate descriptions, or null when they cannot prove which tracked teammate stopped.
+ *  Why: a stop is inferred from absence, so every listed teammate must match a recorded spawn
+ *  description; an undescribed, unknown, or differently formatted entry could be a live row. */
+function readProvableClaudeTeammateDescriptions(
+  roster: ClaudeSubagentRoster,
+  tasks: ClaudeBackgroundAgentTask[]
+): ReadonlySet<string> | null {
+  const recorded: string[] = []
+  for (const tracked of roster.values()) {
+    if (tracked.teammateTaskDescription !== undefined) {
+      recorded.push(tracked.teammateTaskDescription)
+    }
+  }
+  const listed = new Set<string>()
+  for (const task of tasks) {
+    if (!task.teammate) {
+      continue
+    }
+    const description = task.description
+    if (!description || !recorded.some((r) => claudeTeammateDescriptionMatches(r, description))) {
+      return null
+    }
+    listed.add(description)
+  }
+  return listed
+}
+
+function claudeTeammateDescriptionMatches(recorded: string, listed: string): boolean {
+  if (recorded === listed) {
+    return true
+  }
+  // Claude clips inventory descriptions; ambiguous prefix matches must retain every possible owner.
+  const clippingMarker = /\u2026 \[\+\d+ chars\]$/.exec(listed)
+  return clippingMarker !== null && recorded.startsWith(listed.slice(0, clippingMarker.index))
+}
+
 function isClaudeTeammateDescriptionListed(
   description: string,
   listedDescriptions: ReadonlySet<string>
 ): boolean {
-  if (listedDescriptions.has(description)) {
-    return true
-  }
   for (const listed of listedDescriptions) {
-    // Claude clips inventory descriptions; ambiguous prefix matches must retain every possible owner.
-    const clippingMarker = /\u2026 \[\+\d+ chars\]$/.exec(listed)
-    if (clippingMarker && description.startsWith(listed.slice(0, clippingMarker.index))) {
+    if (claudeTeammateDescriptionMatches(description, listed)) {
       return true
     }
   }
