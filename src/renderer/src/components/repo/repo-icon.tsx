@@ -54,178 +54,222 @@ import { createLocalizedCatalog } from '@/i18n/localized-catalog'
 
 type RepoLucideIconDefinition = {
   icon: LucideIcon
-  label: string
+  labelKey: string
+  labelFallback: string
 }
 
 const REPO_LUCIDE_ICON_DEFINITIONS: Record<RepoLucideIconName, RepoLucideIconDefinition> = {
   Folder: {
     icon: Folder,
-    label: translate('auto.components.repo.repo.icon.bed2674f9d', 'Folder')
+    labelKey: 'auto.components.repo.repo.icon.bed2674f9d',
+    labelFallback: 'Folder'
   },
   Code2: {
     icon: Code2,
-    label: translate('auto.components.repo.repo.icon.65b437c381', 'Code')
+    labelKey: 'auto.components.repo.repo.icon.65b437c381',
+    labelFallback: 'Code'
   },
   SquareTerminal: {
     icon: SquareTerminal,
-    label: translate('auto.components.repo.repo.icon.3eba7387ab', 'Terminal')
+    labelKey: 'auto.components.repo.repo.icon.3eba7387ab',
+    labelFallback: 'Terminal'
   },
   Bot: {
     icon: Bot,
-    label: translate('auto.components.repo.repo.icon.07012dc113', 'Agent')
+    labelKey: 'auto.components.repo.repo.icon.07012dc113',
+    labelFallback: 'Agent'
   },
   Package: {
     icon: Package,
-    label: translate('auto.components.repo.repo.icon.787490e9bd', 'Package')
+    labelKey: 'auto.components.repo.repo.icon.787490e9bd',
+    labelFallback: 'Package'
   },
   Database: {
     icon: Database,
-    label: translate('auto.components.repo.repo.icon.477b28c948', 'Database')
+    labelKey: 'auto.components.repo.repo.icon.477b28c948',
+    labelFallback: 'Database'
   },
   Globe: {
     icon: Globe,
-    label: translate('auto.components.repo.repo.icon.3c5a593bc8', 'Web')
+    labelKey: 'auto.components.repo.repo.icon.3c5a593bc8',
+    labelFallback: 'Web'
   },
   Server: {
     icon: Server,
-    label: translate('auto.components.repo.repo.icon.d37b4e2641', 'Server')
+    labelKey: 'auto.components.repo.repo.icon.d37b4e2641',
+    labelFallback: 'Server'
   },
   Cpu: {
     icon: Cpu,
-    label: translate('auto.components.repo.repo.icon.b5fac337aa', 'Compute')
+    labelKey: 'auto.components.repo.repo.icon.b5fac337aa',
+    labelFallback: 'Compute'
   },
   Layers: {
     icon: Layers,
-    label: translate('auto.components.repo.repo.icon.70bef15d40', 'Layers')
+    labelKey: 'auto.components.repo.repo.icon.70bef15d40',
+    labelFallback: 'Layers'
   },
   Braces: {
     icon: Braces,
-    label: translate('auto.components.repo.repo.icon.31826b712e', 'API')
+    labelKey: 'auto.components.repo.repo.icon.31826b712e',
+    labelFallback: 'API'
   },
   Rocket: {
     icon: Rocket,
-    label: translate('auto.components.repo.repo.icon.ecf63ec3ef', 'Launch')
+    labelKey: 'auto.components.repo.repo.icon.ecf63ec3ef',
+    labelFallback: 'Launch'
   },
   Wrench: {
     icon: Wrench,
-    label: translate('auto.components.repo.repo.icon.febfbe0cd5', 'Tools')
+    labelKey: 'auto.components.repo.repo.icon.febfbe0cd5',
+    labelFallback: 'Tools'
   },
   Briefcase: {
     icon: Briefcase,
-    label: translate('auto.components.repo.repo.icon.4ab9433660', 'Work')
+    labelKey: 'auto.components.repo.repo.icon.4ab9433660',
+    labelFallback: 'Work'
   },
   Building2: {
     icon: Building2,
-    label: translate('auto.components.repo.repo.icon.c4fd14299d', 'Company')
+    labelKey: 'auto.components.repo.repo.icon.c4fd14299d',
+    labelFallback: 'Company'
   },
   Palette: {
     icon: Palette,
-    label: translate('auto.components.repo.repo.icon.d202c659a3', 'Design')
+    labelKey: 'auto.components.repo.repo.icon.d202c659a3',
+    labelFallback: 'Design'
   },
   Gauge: {
     icon: Gauge,
-    label: translate('auto.components.repo.repo.icon.137bdb1856', 'Metrics')
+    labelKey: 'auto.components.repo.repo.icon.137bdb1856',
+    labelFallback: 'Metrics'
   },
   Sparkles: {
     icon: Sparkles,
-    label: translate('auto.components.repo.repo.icon.b1b8d99fc4', 'AI')
+    labelKey: 'auto.components.repo.repo.icon.b1b8d99fc4',
+    labelFallback: 'AI'
   },
   Shapes: {
     icon: Shapes,
-    label: translate('auto.components.repo.repo.icon.857977b901', 'Shapes')
+    labelKey: 'auto.components.repo.repo.icon.857977b901',
+    labelFallback: 'Shapes'
   },
   Box: {
     icon: Box,
-    label: translate('auto.components.repo.repo.icon.0ad395d475', 'Box')
+    labelKey: 'auto.components.repo.repo.icon.0ad395d475',
+    labelFallback: 'Box'
   },
   Activity: {
     icon: Activity,
-    label: translate('auto.components.repo.repo.icon.a4f2c8e901', 'Activity')
+    labelKey: 'auto.components.repo.repo.icon.a4f2c8e901',
+    labelFallback: 'Activity'
   },
   BarChart3: {
     icon: BarChart3,
-    label: translate('auto.components.repo.repo.icon.b7e31d4a12', 'Charts')
+    labelKey: 'auto.components.repo.repo.icon.b7e31d4a12',
+    labelFallback: 'Charts'
   },
   Bell: {
     icon: Bell,
-    label: translate('auto.components.repo.repo.icon.c1d92e5f33', 'Alerts')
+    labelKey: 'auto.components.repo.repo.icon.c1d92e5f33',
+    labelFallback: 'Alerts'
   },
   Blocks: {
     icon: Blocks,
-    label: translate('auto.components.repo.repo.icon.d2ea3f6044', 'Blocks')
+    labelKey: 'auto.components.repo.repo.icon.d2ea3f6044',
+    labelFallback: 'Blocks'
   },
   Book: {
     icon: Book,
-    label: translate('auto.components.repo.repo.icon.e3fb405155', 'Docs')
+    labelKey: 'auto.components.repo.repo.icon.e3fb405155',
+    labelFallback: 'Docs'
   },
   Bug: {
     icon: Bug,
-    label: translate('auto.components.repo.repo.icon.f4ac516266', 'Bugs')
+    labelKey: 'auto.components.repo.repo.icon.f4ac516266',
+    labelFallback: 'Bugs'
   },
   Calendar: {
     icon: Calendar,
-    label: translate('auto.components.repo.repo.icon.a5bd627377', 'Calendar')
+    labelKey: 'auto.components.repo.repo.icon.a5bd627377',
+    labelFallback: 'Calendar'
   },
   Camera: {
     icon: Camera,
-    label: translate('auto.components.repo.repo.icon.b6ce738488', 'Camera')
+    labelKey: 'auto.components.repo.repo.icon.b6ce738488',
+    labelFallback: 'Camera'
   },
   Cloud: {
     icon: Cloud,
-    label: translate('auto.components.repo.repo.icon.c7df849599', 'Cloud')
+    labelKey: 'auto.components.repo.repo.icon.c7df849599',
+    labelFallback: 'Cloud'
   },
   FileText: {
     icon: FileText,
-    label: translate('auto.components.repo.repo.icon.d8e095a6aa', 'Notes')
+    labelKey: 'auto.components.repo.repo.icon.d8e095a6aa',
+    labelFallback: 'Notes'
   },
   Flag: {
     icon: Flag,
-    label: translate('auto.components.repo.repo.icon.e9f1a6b7bb', 'Flag')
+    labelKey: 'auto.components.repo.repo.icon.e9f1a6b7bb',
+    labelFallback: 'Flag'
   },
   GitBranch: {
     icon: GitBranch,
-    label: translate('auto.components.repo.repo.icon.f0a2b7c8cc', 'Git')
+    labelKey: 'auto.components.repo.repo.icon.f0a2b7c8cc',
+    labelFallback: 'Git'
   },
   Guitar: {
     icon: Guitar,
-    label: translate('auto.components.repo.repo.icon.a1b3c9d0dd', 'Guitar')
+    labelKey: 'auto.components.repo.repo.icon.a1b3c9d0dd',
+    labelFallback: 'Guitar'
   },
   Hammer: {
     icon: Hammer,
-    label: translate('auto.components.repo.repo.icon.b2c4d0e1ee', 'Build')
+    labelKey: 'auto.components.repo.repo.icon.b2c4d0e1ee',
+    labelFallback: 'Build'
   },
   Heart: {
     icon: Heart,
-    label: translate('auto.components.repo.repo.icon.c3d5e1f2ff', 'Favorite')
+    labelKey: 'auto.components.repo.repo.icon.c3d5e1f2ff',
+    labelFallback: 'Favorite'
   },
   Lightbulb: {
     icon: Lightbulb,
-    label: translate('auto.components.repo.repo.icon.d4e6f20300', 'Ideas')
+    labelKey: 'auto.components.repo.repo.icon.d4e6f20300',
+    labelFallback: 'Ideas'
   },
   Music: {
     icon: Music,
-    label: translate('auto.components.repo.repo.icon.e5f7141111', 'Music')
+    labelKey: 'auto.components.repo.repo.icon.e5f7141111',
+    labelFallback: 'Music'
   },
   Puzzle: {
     icon: Puzzle,
-    label: translate('auto.components.repo.repo.icon.f6a8252222', 'Puzzle')
+    labelKey: 'auto.components.repo.repo.icon.f6a8252222',
+    labelFallback: 'Puzzle'
   },
   Star: {
     icon: Star,
-    label: translate('auto.components.repo.repo.icon.a7b9363333', 'Star')
+    labelKey: 'auto.components.repo.repo.icon.a7b9363333',
+    labelFallback: 'Star'
   },
   Zap: {
     icon: Zap,
-    label: translate('auto.components.repo.repo.icon.b8ca474444', 'Fast')
+    labelKey: 'auto.components.repo.repo.icon.b8ca474444',
+    labelFallback: 'Fast'
   }
 }
 
 export const getRepoLucideIconOptions = createLocalizedCatalog(() =>
-  REPO_LUCIDE_ICON_NAMES.map((name) => ({
-    name,
-    label: REPO_LUCIDE_ICON_DEFINITIONS[name].label,
-    icon: REPO_LUCIDE_ICON_DEFINITIONS[name].icon
-  }))
+  REPO_LUCIDE_ICON_NAMES.map((name) => {
+    const definition = REPO_LUCIDE_ICON_DEFINITIONS[name]
+    return {
+      name,
+      label: translate(definition.labelKey, definition.labelFallback),
+      icon: definition.icon
+    }
+  })
 )
 
 function isRepoLucideIconName(name: string): name is RepoLucideIconName {

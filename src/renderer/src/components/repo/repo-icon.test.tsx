@@ -2,10 +2,12 @@
 import { cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { REPO_LUCIDE_ICON_NAMES } from '../../../../shared/repo-lucide-icon-names'
+import { i18n } from '@/i18n/i18n'
 import { getRepoLucideIconOptions, RepoIconGlyph } from './repo-icon'
 
-afterEach(() => {
+afterEach(async () => {
   cleanup()
+  await i18n.changeLanguage('en')
 })
 
 const GHE_AVATAR = 'https://ghe.example.com/acme.png?size=64'
@@ -15,6 +17,15 @@ describe('getRepoLucideIconOptions', () => {
     expect(getRepoLucideIconOptions().map((option) => option.name)).toEqual([
       ...REPO_LUCIDE_ICON_NAMES
     ])
+  })
+
+  it('rebuilds translated labels after switching languages', async () => {
+    const folder = getRepoLucideIconOptions().find((option) => option.name === 'Folder')
+    expect(folder?.label).toBe('Folder')
+
+    await i18n.changeLanguage('es')
+    const folderSpanish = getRepoLucideIconOptions().find((option) => option.name === 'Folder')
+    expect(folderSpanish?.label).toBe('Carpeta')
   })
 })
 

@@ -1,4 +1,5 @@
 import { Suspense, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Github, Image, Link2 } from 'lucide-react'
 import type { RepoIcon } from '../../../../../../shared/repo-icon'
@@ -39,12 +40,13 @@ export function RepositoryIconTabs({
   onSetIcon,
   onUseGitHubAvatar
 }: RepositoryIconTabsProps): React.JSX.Element {
+  const { i18n } = useTranslation()
   const [website, setWebsite] = useState('')
   const [iconSearch, setIconSearch] = useState('')
   const mountedRef = useMountedRef()
   const lucideIconOptions = useMemo(
     () => filterRepoLucideIconOptions(getRepoLucideIconOptions(), iconSearch),
-    [iconSearch]
+    [iconSearch, i18n.language]
   )
 
   const handleUploadImage = async () => {
