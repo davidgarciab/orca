@@ -6,10 +6,19 @@ vi.mock('./ai-vault-original-pane', () => ({
   findOriginalAiVaultSessionPane: (_state: unknown, session: AiVaultSession) =>
     session.sessionId === 'unmatched'
       ? null
-      : { paneKey: 'tab-1:leaf', worktreeId: 'w1', tabId: 'tab-1', leafId: 'leaf' }
+      : { paneKey: 'tab-1:leaf', worktreeId: 'w1', tabId: 'tab-1', leafId: 'leaf' },
+  resolveOriginalPaneTarget: () => ({
+    paneKey: 'tab-1:leaf',
+    worktreeId: 'w1',
+    tabId: 'tab-1',
+    leafId: 'leaf'
+  })
 }))
 
-import { withTerminalTabTitleMatches } from './ai-vault-terminal-tab-title'
+import {
+  openRenamedTabSessionRefs,
+  withTerminalTabTitleMatches
+} from './ai-vault-terminal-tab-title'
 
 function session(sessionId: string, updatedAt: string | null = null): AiVaultSession {
   return {
@@ -90,5 +99,32 @@ describe('withTerminalTabTitleMatches', () => {
       state
     )
     expect(result.map((row) => row.sessionId)).toEqual(['newer', 'unmatched', 'older'])
+  })
+})
+
+describe('openRenamedTabSessionRefs', () => {
+  it('lists provider sessions in open tabs whose rename matches, even when history lacks them', () => {
+    const paneKey = 'tab-1:leaf'
+    const refs = openRenamedTabSessionRefs(
+      {
+        ...state,
+        agentStatusByPaneKey: {
+          [paneKey]: {
+            paneKey,
+            tabId: 'tab-1',
+            worktreeId: 'w1',
+            agentType: 'claude',
+            providerSession: { key: 'session_id', id: 'old-session' },
+            state: 'done',
+            prompt: '',
+            updatedAt: 0,
+            stateStartedAt: 0,
+            stateHistory: []
+          }
+        }
+      },
+      'billing'
+    )
+    expect(refs).toEqual([{ agent: 'claude', sessionId: 'old-session', worktreeId: 'w1' }])
   })
 })

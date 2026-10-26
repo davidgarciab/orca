@@ -1,5 +1,9 @@
 import type { AiVaultSearchSort, AiVaultSession } from '../../../../shared/ai-vault-types'
-import { findOriginalAiVaultSessionPane, type OriginalPaneState } from './ai-vault-original-pane'
+import {
+  findOriginalAiVaultSessionPane,
+  resolveOriginalPaneTarget,
+  type OriginalPaneState
+} from './ai-vault-original-pane'
 
 /** The custom title of the open terminal tab running this session, if the user renamed it. */
 export function terminalTabTitleForSession(
@@ -13,6 +17,71 @@ export function terminalTabTitleForSession(
   return tab?.customTitle?.trim() || null
 }
 
+export type OpenRenamedTabSessionRef = { agent: string; sessionId: string; worktreeId: string }
+
+function queryTerms(query: string): string[] {
+  return query.toLowerCase().split(/\s+/).filter(Boolean)
+}
+
+/** Provider sessions running in open tabs whose rename matches every term, whether or not history loaded them. */
+export function openRenamedTabSessionRefs(
+  state: OriginalPaneState,
+  query: string
+): OpenRenamedTabSessionRef[] {
+  const terms = queryTerms(query)
+  if (terms.length === 0) {
+    return []
+  }
+  const refs = new Map<string, OpenRenamedTabSessionRef>()
+  const consider = (
+    agent: string | undefined,
+    sessionId: string | undefined,
+    paneKey: string,
+    worktreeIdHint: string | undefined,
+    tabIdHint: string | undefined
+  ): void => {
+    if (!agent || !sessionId) {
+      return
+    }
+    const target = resolveOriginalPaneTarget({ state, paneKey, worktreeIdHint, tabIdHint })
+    const tab = target
+      ? state.tabsByWorktree[target.worktreeId]?.find((candidate) => candidate.id === target.tabId)
+      : undefined
+    const title = tab?.customTitle?.trim().toLowerCase()
+    if (target && title && terms.every((term) => title.includes(term))) {
+      refs.set(`${agent}\u0000${sessionId}`, { agent, sessionId, worktreeId: target.worktreeId })
+    }
+  }
+  for (const entry of Object.values(state.agentStatusByPaneKey)) {
+    consider(
+      entry.agentType,
+      entry.providerSession?.id,
+      entry.paneKey,
+      entry.worktreeId,
+      entry.tabId
+    )
+  }
+  for (const retained of Object.values(state.retainedAgentsByPaneKey)) {
+    consider(
+      retained.agentType,
+      retained.entry.providerSession?.id,
+      retained.entry.paneKey,
+      retained.worktreeId,
+      retained.entry.tabId ?? retained.tab.id
+    )
+  }
+  for (const record of Object.values(state.sleepingAgentSessionsByPaneKey)) {
+    consider(
+      record.agent,
+      record.providerSession.id,
+      record.paneKey,
+      record.worktreeId,
+      record.tabId
+    )
+  }
+  return [...refs.values()]
+}
+
 /** Host search indexes transcripts, not tab renames, so add history rows whose renamed tab matches every term. */
 export function withTerminalTabTitleMatches(
   hitSessions: AiVaultSession[],
@@ -21,7 +90,7 @@ export function withTerminalTabTitleMatches(
   sort: AiVaultSearchSort,
   state: OriginalPaneState
 ): AiVaultSession[] {
-  const terms = query.toLowerCase().split(/\s+/).filter(Boolean)
+  const terms = queryTerms(query)
   if (terms.length === 0) {
     return hitSessions
   }

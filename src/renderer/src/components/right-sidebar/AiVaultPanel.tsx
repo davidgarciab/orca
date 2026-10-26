@@ -160,7 +160,14 @@ export default function AiVaultPanel({
   )
   const search = useAiVaultPanelSearch(query, agents, searchWithin, executionHostScope, searchSort)
   const { searching, searchHits } = search
-  const searchSessions = useAiVaultSearchSessions(search.sessions, history, query, searchSort)
+  const searchSessions = useAiVaultSearchSessions(
+    search.sessions,
+    history,
+    query,
+    searchSort,
+    executionHostScope,
+    allWorktrees
+  )
   const sessions = searching ? searchSessions : history
   const requestedScanKey = aiVaultLocalScanKey({
     scopePaths,
