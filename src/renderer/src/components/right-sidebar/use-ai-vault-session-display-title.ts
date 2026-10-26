@@ -1,7 +1,7 @@
 import type { AiVaultSession } from '../../../../shared/ai-vault-types'
 import { structuredChatDisplayName } from '../../../../shared/structured-chat-row-name'
 import { useAppStore } from '@/store'
-import { findOriginalAiVaultSessionPane } from './ai-vault-original-pane'
+import { terminalTabTitleForSession } from './ai-vault-terminal-tab-title'
 import { structuredChatTabBySessionId } from '@/lib/structured-chat-tab-index'
 import { useStructuredConversationName } from '@/runtime/structured-conversation-name'
 
@@ -25,11 +25,7 @@ export function useAiVaultSessionDisplayTitle(session: AiVaultSession): string {
     if (owner) {
       return null
     }
-    const target = findOriginalAiVaultSessionPane(state, session)
-    const tab = target
-      ? state.tabsByWorktree[target.worktreeId]?.find((candidate) => candidate.id === target.tabId)
-      : undefined
-    return tab?.customTitle?.trim() || null
+    return terminalTabTitleForSession(state, session)
   })
   const conversationName = useStructuredConversationName(session.executionHostId, owner?.sessionId)
   return owner

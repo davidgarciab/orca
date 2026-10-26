@@ -35,7 +35,7 @@ import { AgentSessionContinuationDialog } from '@/components/agent-session-conti
 import { AiVaultScanIssueBanners } from './AiVaultScanIssueBanners'
 import { useAiVaultSessionDeleteAction } from './ai-vault-session-delete-action'
 import { useAiVaultPanelSearch } from './use-ai-vault-search'
-import { withAiVaultHistoryPreviews } from './ai-vault-search-session'
+import { useAiVaultSearchSessions } from './use-ai-vault-search-sessions'
 import { aiVaultSearchScopeIdentity } from './ai-vault-search-scope-identity'
 import { AiVaultPanelSearch } from './AiVaultPanelSearch'
 import { useAiVaultPanelSessionResume } from './use-ai-vault-panel-session-resume'
@@ -160,10 +160,7 @@ export default function AiVaultPanel({
   )
   const search = useAiVaultPanelSearch(query, agents, searchWithin, executionHostScope, searchSort)
   const { searching, searchHits } = search
-  const searchSessions = useMemo(
-    () => withAiVaultHistoryPreviews(search.sessions, history),
-    [history, search.sessions]
-  )
+  const searchSessions = useAiVaultSearchSessions(search.sessions, history, query)
   const sessions = searching ? searchSessions : history
   const requestedScanKey = aiVaultLocalScanKey({
     scopePaths,
