@@ -1,4 +1,4 @@
-import type { AiVaultSession } from '../../../../shared/ai-vault-types'
+import type { AiVaultSearchSort, AiVaultSession } from '../../../../shared/ai-vault-types'
 import { findOriginalAiVaultSessionPane, type OriginalPaneState } from './ai-vault-original-pane'
 
 /** The custom title of the open terminal tab running this session, if the user renamed it. */
@@ -18,6 +18,7 @@ export function withTerminalTabTitleMatches(
   hitSessions: AiVaultSession[],
   history: readonly AiVaultSession[],
   query: string,
+  sort: AiVaultSearchSort,
   state: OriginalPaneState
 ): AiVaultSession[] {
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean)
@@ -32,5 +33,14 @@ export function withTerminalTabTitleMatches(
     const title = terminalTabTitleForSession(state, session)?.toLowerCase()
     return title !== undefined && terms.every((term) => title.includes(term))
   })
-  return extra.length > 0 ? [...hitSessions, ...extra] : hitSessions
+  if (extra.length === 0) {
+    return hitSessions
+  }
+  const merged = [...hitSessions, ...extra]
+  return sort === 'newest' ? merged.sort((a, b) => sessionTime(b) - sessionTime(a)) : merged
+}
+
+function sessionTime(session: AiVaultSession): number {
+  const time = Date.parse(session.updatedAt ?? session.modifiedAt)
+  return Number.isNaN(time) ? 0 : time
 }

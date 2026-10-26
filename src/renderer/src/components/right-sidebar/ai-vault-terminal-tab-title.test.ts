@@ -11,7 +11,7 @@ vi.mock('./ai-vault-original-pane', () => ({
 
 import { withTerminalTabTitleMatches } from './ai-vault-terminal-tab-title'
 
-function session(sessionId: string): AiVaultSession {
+function session(sessionId: string, updatedAt: string | null = null): AiVaultSession {
   return {
     id: `local:${sessionId}`,
     executionHostId: 'local',
@@ -24,7 +24,7 @@ function session(sessionId: string): AiVaultSession {
     filePath: `/sessions/${sessionId}.jsonl`,
     codexHome: null,
     createdAt: null,
-    updatedAt: null,
+    updatedAt,
     modifiedAt: '2026-10-06T00:00:00Z',
     messageCount: 1,
     totalTokens: 0,
@@ -60,16 +60,35 @@ const state: OriginalPaneState = {
 describe('withTerminalTabTitleMatches', () => {
   it('adds history rows whose renamed tab matches every term', () => {
     const history = [session('a'), session('unmatched')]
-    const result = withTerminalTabTitleMatches([], history, 'billing refactor', state)
+    const result = withTerminalTabTitleMatches([], history, 'billing refactor', 'relevance', state)
     expect(result.map((row) => row.sessionId)).toEqual(['a'])
   })
 
   it('keeps host hits and does not duplicate them', () => {
     const hit = session('a')
-    expect(withTerminalTabTitleMatches([hit], [session('a')], 'billing', state)).toEqual([hit])
+    expect(
+      withTerminalTabTitleMatches([hit], [session('a')], 'billing', 'relevance', state)
+    ).toEqual([hit])
   })
 
   it('ignores queries that do not match the tab title', () => {
-    expect(withTerminalTabTitleMatches([], [session('a')], 'payments', state)).toEqual([])
+    expect(withTerminalTabTitleMatches([], [session('a')], 'payments', 'relevance', state)).toEqual(
+      []
+    )
+  })
+
+  it('merges title matches by recency when sorting newest first', () => {
+    const older = { ...session('older', '2026-10-01T00:00:00Z'), title: 'x' }
+    const newer = session('newer', '2026-10-20T00:00:00Z')
+    const hit = { ...session('hit', '2026-10-10T00:00:00Z'), id: 'local:hit' }
+    const hitUnmatched = { ...hit, sessionId: 'unmatched' }
+    const result = withTerminalTabTitleMatches(
+      [older, hitUnmatched],
+      [newer],
+      'billing',
+      'newest',
+      state
+    )
+    expect(result.map((row) => row.sessionId)).toEqual(['newer', 'unmatched', 'older'])
   })
 })
