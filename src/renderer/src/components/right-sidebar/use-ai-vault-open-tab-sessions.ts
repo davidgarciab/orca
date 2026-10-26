@@ -33,7 +33,11 @@ export function useAiVaultOpenTabSessions(
     return [...paths].sort()
   }, [missing, worktrees])
   const scopeKey = JSON.stringify(scopePaths)
-  const [fetched, setFetched] = useState<AiVaultSession[]>([])
+  const [fetched, setFetched] = useState<{
+    executionHostScope: ExecutionHostScope
+    scopeKey: string
+    sessions: AiVaultSession[]
+  } | null>(null)
 
   useEffect(() => {
     if (scopePaths.length === 0) {
@@ -45,7 +49,7 @@ export function useAiVaultOpenTabSessions(
       .listSessions({ scopePaths, executionHostScope, requestToken })
       .then((result) => {
         if (!cancelled && !result.cancelled) {
-          setFetched(result.sessions)
+          setFetched({ executionHostScope, scopeKey, sessions: result.sessions })
         }
       })
       .catch(() => {})
@@ -58,10 +62,18 @@ export function useAiVaultOpenTabSessions(
   }, [scopeKey, executionHostScope])
 
   return useMemo(() => {
-    if (missing.length === 0 || fetched.length === 0) {
+    // Rows from another host scope or worktree set must not outlive a failed or pending refetch.
+    if (
+      missing.length === 0 ||
+      !fetched ||
+      fetched.executionHostScope !== executionHostScope ||
+      fetched.scopeKey !== scopeKey
+    ) {
       return []
     }
     const wanted = new Set(missing.map((ref) => `${ref.agent}\u0000${ref.sessionId}`))
-    return fetched.filter((session) => wanted.has(`${session.agent}\u0000${session.sessionId}`))
-  }, [fetched, missing])
+    return fetched.sessions.filter((session) =>
+      wanted.has(`${session.agent}\u0000${session.sessionId}`)
+    )
+  }, [fetched, missing, executionHostScope, scopeKey])
 }
