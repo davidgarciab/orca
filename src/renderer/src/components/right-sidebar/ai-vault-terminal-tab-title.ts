@@ -95,8 +95,20 @@ export function withTerminalTabTitleMatches(
     return hitSessions
   }
   const seen = new Set(hitSessions.map((session) => session.id))
+  // Path-redacted hits have a different id from their history row; join on identity only when unambiguous.
+  const identityCounts = new Map<string, number>()
+  for (const session of history) {
+    const key = sessionIdentity(session)
+    identityCounts.set(key, (identityCounts.get(key) ?? 0) + 1)
+  }
+  const hitIdentities = new Set(hitSessions.map(sessionIdentity))
   const extra = history.filter((session) => {
-    if (seen.has(session.id) || session.structuredSession) {
+    const identity = sessionIdentity(session)
+    if (
+      seen.has(session.id) ||
+      (identityCounts.get(identity) === 1 && hitIdentities.has(identity)) ||
+      session.structuredSession
+    ) {
       return false
     }
     const title = terminalTabTitleForSession(state, session)?.toLowerCase()
@@ -107,6 +119,12 @@ export function withTerminalTabTitleMatches(
   }
   const merged = [...hitSessions, ...extra]
   return sort === 'newest' ? merged.sort((a, b) => sessionTime(b) - sessionTime(a)) : merged
+}
+
+function sessionIdentity(
+  session: Pick<AiVaultSession, 'executionHostId' | 'agent' | 'sessionId'>
+): string {
+  return JSON.stringify([session.executionHostId, session.agent, session.sessionId])
 }
 
 function sessionTime(session: AiVaultSession): number {

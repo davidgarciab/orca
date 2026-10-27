@@ -80,6 +80,13 @@ describe('withTerminalTabTitleMatches', () => {
     ).toEqual([hit])
   })
 
+  it('does not duplicate a path-redacted hit whose id differs from its history row', () => {
+    const hit = { ...session('a'), id: 'local:claude:a:', filePath: '' }
+    expect(
+      withTerminalTabTitleMatches([hit], [session('a')], 'billing', 'relevance', state)
+    ).toEqual([hit])
+  })
+
   it('ignores queries that do not match the tab title', () => {
     expect(withTerminalTabTitleMatches([], [session('a')], 'payments', 'relevance', state)).toEqual(
       []
