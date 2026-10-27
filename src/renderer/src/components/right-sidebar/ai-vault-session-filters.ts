@@ -28,6 +28,25 @@ export type AiVaultSessionListGroup = {
   sessions: AiVaultSession[]
 }
 
+/** Host hits are already scoped by the host; rows added from open tab titles still need the panel's agent/scope filters. */
+function withScopedTabTitleMatches(
+  sessions: readonly AiVaultSession[],
+  searchHits: readonly AiVaultSession[],
+  filters: Omit<AiVaultSessionFilterState, 'query' | 'sort' | 'projectLabelByKey'>
+): AiVaultSession[] {
+  const searchHitIds = new Set(searchHits.map((session) => session.id))
+  const additions = sessions.filter((session) => !searchHitIds.has(session.id))
+  if (additions.length === 0) {
+    return [...sessions]
+  }
+  const allowed = new Set(
+    filterAiVaultSessions(additions, { ...filters, query: '', sort: 'updated' }).map(
+      (session) => session.id
+    )
+  )
+  return sessions.filter((session) => searchHitIds.has(session.id) || allowed.has(session.id))
+}
+
 export function useAiVaultPanelSessions(
   sessions: readonly AiVaultSession[],
   searching: boolean,
@@ -41,13 +60,22 @@ export function useAiVaultPanelSessions(
     activeProjectKey,
     sessionProjectById,
     projectLabelByKey,
-    hideEmptySessions
-  }: AiVaultSessionFilterState
+    hideEmptySessions,
+    terminalTabTitleFor,
+    searchHits
+  }: AiVaultSessionFilterState & { searchHits: readonly AiVaultSession[] }
 ) {
   const filteredSessions = useMemo(
     () =>
       searching
-        ? sessions
+        ? withScopedTabTitleMatches(sessions, searchHits, {
+            agents,
+            scope,
+            activeWorktreePaths,
+            activeProjectKey,
+            sessionProjectById,
+            hideEmptySessions
+          })
         : filterAiVaultSessions(sessions, {
             query,
             agents,
@@ -57,10 +85,12 @@ export function useAiVaultPanelSessions(
             activeProjectKey,
             sessionProjectById,
             projectLabelByKey,
-            hideEmptySessions
+            hideEmptySessions,
+            terminalTabTitleFor
           }),
     [
       searching,
+      searchHits,
       sessions,
       query,
       agents,
@@ -70,7 +100,8 @@ export function useAiVaultPanelSessions(
       activeProjectKey,
       sessionProjectById,
       projectLabelByKey,
-      hideEmptySessions
+      hideEmptySessions,
+      terminalTabTitleFor
     ]
   )
   const groups = useMemo<AiVaultSessionListGroup[]>(

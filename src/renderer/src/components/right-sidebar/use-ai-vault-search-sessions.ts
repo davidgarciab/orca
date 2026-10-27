@@ -1,9 +1,12 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import type { AiVaultSearchSort, AiVaultSession } from '../../../../shared/ai-vault-types'
 import type { ExecutionHostScope } from '../../../../shared/execution-host'
 import { useAppStore } from '@/store'
 import { withAiVaultHistoryPreviews } from './ai-vault-search-session'
-import { withTerminalTabTitleMatches } from './ai-vault-terminal-tab-title'
+import {
+  terminalTabTitleForSession,
+  withTerminalTabTitleMatches
+} from './ai-vault-terminal-tab-title'
 import { useAiVaultOpenTabSessions } from './use-ai-vault-open-tab-sessions'
 
 /** Host hits with scanned previews, plus rows whose open terminal tab was renamed to match the query. */
@@ -14,7 +17,7 @@ export function useAiVaultSearchSessions(
   sort: AiVaultSearchSort,
   executionHostScope: ExecutionHostScope,
   worktrees: readonly { id: string; path: string }[]
-): AiVaultSession[] {
+): { sessions: AiVaultSession[]; terminalTabTitleFor: (session: AiVaultSession) => string | null } {
   const agentStatusByPaneKey = useAppStore((state) => state.agentStatusByPaneKey)
   const retainedAgentsByPaneKey = useAppStore((state) => state.retainedAgentsByPaneKey)
   const sleepingAgentSessionsByPaneKey = useAppStore(
@@ -45,7 +48,11 @@ export function useAiVaultSearchSessions(
     worktrees,
     paneState
   )
-  return useMemo(
+  const terminalTabTitleFor = useCallback(
+    (session: AiVaultSession) => terminalTabTitleForSession(paneState, session),
+    [paneState]
+  )
+  const sessions = useMemo(
     () =>
       withTerminalTabTitleMatches(
         withAiVaultHistoryPreviews(hitSessions, history),
@@ -56,4 +63,5 @@ export function useAiVaultSearchSessions(
       ),
     [hitSessions, history, openTabSessions, query, sort, paneState]
   )
+  return { sessions, terminalTabTitleFor }
 }

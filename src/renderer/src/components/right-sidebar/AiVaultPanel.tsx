@@ -169,7 +169,7 @@ export default function AiVaultPanel({
     activeProjectKey ?? undefined
   )
   const { searching, searchHits } = search
-  const searchSessions = useAiVaultSearchSessions(
+  const { sessions: searchSessions, terminalTabTitleFor } = useAiVaultSearchSessions(
     search.sessions,
     history,
     query,
@@ -224,7 +224,6 @@ export default function AiVaultPanel({
     hideEmptySessions,
     sessionLimit
   })
-
   const { filteredSessions, groups } = useAiVaultPanelSessions(sessions, searching, group, {
     query,
     agents,
@@ -234,7 +233,9 @@ export default function AiVaultPanel({
     activeProjectKey,
     sessionProjectById,
     projectLabelByKey,
-    hideEmptySessions
+    hideEmptySessions,
+    terminalTabTitleFor,
+    searchHits: search.sessions
   })
   const searchHitHostLabels = useMemo(
     () => (searching ? aiVaultSearchHitHostLabels(filteredSessions, hostScopeOptions) : null),
