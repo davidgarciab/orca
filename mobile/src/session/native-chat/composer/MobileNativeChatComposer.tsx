@@ -13,14 +13,15 @@ import {
   MobileNativeChatSessionOptionPickers,
   type MobileNativeChatPickerPresentation,
   type MobileNativeChatSessionOptionPickersProps
-} from '../../MobileNativeChatSessionOptionPickers'
+} from '../input/MobileNativeChatSessionOptionPickers'
 import type { PendingNativeChatImage } from './mobile-native-chat-image-attachment'
 import type { MobileComposerStructuredCatalog } from './mobile-native-chat-composer-menu'
 import { useMobileNativeChatComposerMenu } from './use-mobile-native-chat-composer-menu'
 import { keepHeldPressThroughLongPress } from '../../held-press-long-press'
 import { mobileNativeChatComposerShowsStop } from './mobile-native-chat-composer-layout'
-import { MobileNativeChatStopButton } from '../../MobileNativeChatStopButton'
+import { MobileNativeChatStopButton } from '../input/MobileNativeChatStopButton'
 import { mobileNativeChatComposerStyles as styles } from './mobile-native-chat-composer-styles'
+import { useMobileNativeChatDraft } from './mobile-native-chat-draft-store'
 
 const NO_FILE_PATHS: string[] = []
 const NO_ATTACHMENTS: PendingNativeChatImage[] = []
@@ -326,4 +327,11 @@ export function MobileNativeChatComposer({
       ) : null}
     </View>
   )
+}
+
+export function MobileNativeChatDraftComposer({
+  draftKey,
+  ...props
+}: Omit<Props, 'value'> & { draftKey: string | null }): React.JSX.Element {
+  return <MobileNativeChatComposer {...props} value={useMobileNativeChatDraft(draftKey)} />
 }

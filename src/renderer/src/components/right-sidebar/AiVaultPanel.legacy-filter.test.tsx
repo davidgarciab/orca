@@ -11,6 +11,8 @@ const mockState: {
   folderWorkspaces: never[]
   projectGroups: never[]
   repos: never[]
+  endpointProjects: never[]
+  endpointProjectHostSetups: never[]
   worktreesByRepo: Record<string, never>
   agentStatusByPaneKey: Record<string, never>
   retainedAgentsByPaneKey: Record<string, never>
@@ -23,6 +25,8 @@ const mockState: {
   folderWorkspaces: [],
   projectGroups: [],
   repos: [],
+  endpointProjects: [],
+  endpointProjectHostSetups: [],
   worktreesByRepo: {},
   agentStatusByPaneKey: {},
   retainedAgentsByPaneKey: {},
@@ -166,7 +170,11 @@ it('switches to index search with the same query once indexing is enabled', asyn
     aiVaultSearch: { enabled: true, historyDays: null }
   })
   await waitFor(() =>
-    expect(searchSessions).toHaveBeenCalledWith(expect.objectContaining({ query: 'foo' }), 'local')
+    expect(searchSessions).toHaveBeenCalledWith(
+      expect.objectContaining({ query: 'foo' }),
+      'local',
+      expect.any(Function)
+    )
   )
   expect(screen.queryByRole('button', { name: 'Enable' })).toBeNull()
   await waitFor(() => expect(screen.queryByText('Fix the foo pipeline')).toBeNull())

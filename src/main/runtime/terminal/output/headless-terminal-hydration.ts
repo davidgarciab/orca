@@ -104,7 +104,7 @@ export abstract class OrcaRuntimeWithMaybeHydrateHeadlessFromRenderer extends Or
           return
         }
         this.recordOsc7MetadataForPty(ptyId, rendered.data)
-        this.recordRecentPtyOutputForPathProvenance(ptyId, rendered.data)
+        this.recordRecentPtyOutput(ptyId, rendered.data)
         // Resize to renderer's dims so the seed reflows correctly into the
         // emulator's grid, then resize back to PTY dims (if known) so live
         // writes use the correct cell layout.
@@ -186,7 +186,7 @@ export abstract class OrcaRuntimeWithMaybeHydrateHeadlessFromRenderer extends Or
   /** True when this PTY's queries go unanswered unless its single receiving remote view answers them. */
   isSoleRemoteTerminalQueryOwner(ptyId: string): boolean {
     return (
-      this.terminalViewSubscribers.remoteReceivingOutputCount(ptyId) === 1 &&
+      this.terminalViewSubscribers.remoteAnsweringQueriesCount(ptyId) === 1 &&
       shouldModelAnswerHiddenPtyQueries({
         ptyId,
         settings: this.store?.getSettings(),
