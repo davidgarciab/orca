@@ -1,4 +1,5 @@
 import type { AiVaultSearchSort, AiVaultSession } from '../../../../shared/ai-vault-types'
+import { parseVaultQuery } from '../../../../shared/ai-vault-session-filters'
 import {
   findOriginalAiVaultSessionPane,
   resolveOriginalPaneTarget,
@@ -20,7 +21,7 @@ export function terminalTabTitleForSession(
 export type OpenRenamedTabSessionRef = { agent: string; sessionId: string; worktreeId: string }
 
 function queryTerms(query: string): string[] {
-  return query.toLowerCase().split(/\s+/).filter(Boolean)
+  return parseVaultQuery(query).terms
 }
 
 /** Provider sessions running in open tabs whose rename matches every term, whether or not history loaded them. */

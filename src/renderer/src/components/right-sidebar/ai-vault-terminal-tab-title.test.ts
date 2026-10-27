@@ -87,6 +87,17 @@ describe('withTerminalTabTitleMatches', () => {
     ).toEqual([hit])
   })
 
+  it('treats repo: and path: operators as filters, not title terms', () => {
+    const result = withTerminalTabTitleMatches(
+      [],
+      [session('a')],
+      'billing repo:app',
+      'relevance',
+      state
+    )
+    expect(result.map((row) => row.sessionId)).toEqual(['a'])
+  })
+
   it('ignores queries that do not match the tab title', () => {
     expect(withTerminalTabTitleMatches([], [session('a')], 'payments', 'relevance', state)).toEqual(
       []

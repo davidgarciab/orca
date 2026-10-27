@@ -32,18 +32,14 @@ export type AiVaultSessionListGroup = {
 function withScopedTabTitleMatches(
   sessions: readonly AiVaultSession[],
   searchHits: readonly AiVaultSession[],
-  filters: Omit<AiVaultSessionFilterState, 'query' | 'sort' | 'projectLabelByKey'>
+  filters: AiVaultSessionFilterState
 ): AiVaultSession[] {
   const searchHitIds = new Set(searchHits.map((session) => session.id))
   const additions = sessions.filter((session) => !searchHitIds.has(session.id))
   if (additions.length === 0) {
     return [...sessions]
   }
-  const allowed = new Set(
-    filterAiVaultSessions(additions, { ...filters, query: '', sort: 'updated' }).map(
-      (session) => session.id
-    )
-  )
+  const allowed = new Set(filterAiVaultSessions(additions, filters).map((session) => session.id))
   return sessions.filter((session) => searchHitIds.has(session.id) || allowed.has(session.id))
 }
 
@@ -65,33 +61,20 @@ export function useAiVaultPanelSessions(
     searchHits
   }: AiVaultSessionFilterState & { searchHits: readonly AiVaultSession[] }
 ) {
-  const filteredSessions = useMemo(
-    () =>
-      searching
-        ? withScopedTabTitleMatches(sessions, searchHits, {
-            agents,
-            scope,
-            activeWorktreePaths,
-            activeProjectKey,
-            sessionProjectById,
-            hideEmptySessions
-          })
-        : filterAiVaultSessions(sessions, {
-            query,
-            agents,
-            scope,
-            sort,
-            activeWorktreePaths,
-            activeProjectKey,
-            sessionProjectById,
-            projectLabelByKey,
-            hideEmptySessions,
-            terminalTabTitleFor
-          }),
+  const filters = useMemo<AiVaultSessionFilterState>(
+    () => ({
+      query,
+      agents,
+      scope,
+      sort,
+      activeWorktreePaths,
+      activeProjectKey,
+      sessionProjectById,
+      projectLabelByKey,
+      hideEmptySessions,
+      terminalTabTitleFor
+    }),
     [
-      searching,
-      searchHits,
-      sessions,
       query,
       agents,
       scope,
@@ -103,6 +86,13 @@ export function useAiVaultPanelSessions(
       hideEmptySessions,
       terminalTabTitleFor
     ]
+  )
+  const filteredSessions = useMemo(
+    () =>
+      searching
+        ? withScopedTabTitleMatches(sessions, searchHits, filters)
+        : filterAiVaultSessions(sessions, filters),
+    [searching, searchHits, sessions, filters]
   )
   const groups = useMemo<AiVaultSessionListGroup[]>(
     () =>
