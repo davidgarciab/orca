@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { AiVaultSession } from '../../../../shared/ai-vault-types'
 import type { ExecutionHostScope } from '../../../../shared/execution-host'
 import { createBrowserUuid } from '@/lib/browser-uuid'
@@ -14,7 +14,7 @@ export function useAiVaultOpenTabSessions(
   executionHostScope: ExecutionHostScope,
   worktrees: readonly WorktreePath[],
   paneState: OriginalPaneState
-): { sessions: AiVaultSession[]; forget: (session: AiVaultSession) => void } {
+): AiVaultSession[] {
   const missing = useMemo(() => {
     const loaded = new Set(history.map((session) => `${session.agent}\u0000${session.sessionId}`))
     return openRenamedTabSessionRefs(paneState, query).filter(
@@ -61,15 +61,7 @@ export function useAiVaultOpenTabSessions(
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [scopeKey, executionHostScope])
 
-  const forget = useCallback((session: AiVaultSession) => {
-    setFetched((current) =>
-      current
-        ? { ...current, sessions: current.sessions.filter((row) => row.id !== session.id) }
-        : current
-    )
-  }, [])
-
-  const sessions = useMemo(() => {
+  return useMemo(() => {
     // Rows from another host scope or worktree set must not outlive a failed or pending refetch.
     if (
       missing.length === 0 ||
@@ -84,5 +76,4 @@ export function useAiVaultOpenTabSessions(
       wanted.has(`${session.agent}\u0000${session.sessionId}`)
     )
   }, [fetched, missing, executionHostScope, scopeKey])
-  return { sessions, forget }
 }

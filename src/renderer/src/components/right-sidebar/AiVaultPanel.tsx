@@ -160,11 +160,8 @@ export default function AiVaultPanel({
   )
   const search = useAiVaultPanelSearch(query, agents, searchWithin, executionHostScope, searchSort)
   const { searching, searchHits } = search
-  const {
-    sessions: searchSessions,
-    terminalTabTitleFor,
-    onDeleted
-  } = useAiVaultSearchSessions(
+  const { sessions, terminalTabTitleFor, onDeleted } = useAiVaultSearchSessions(
+    searching,
     search.sessions,
     history,
     query,
@@ -173,7 +170,6 @@ export default function AiVaultPanel({
     allWorktrees,
     search.onDeleted
   )
-  const sessions = searching ? searchSessions : history
   const requestedScanKey = aiVaultLocalScanKey({
     scopePaths,
     includeAntigravityIdeSessions: true,

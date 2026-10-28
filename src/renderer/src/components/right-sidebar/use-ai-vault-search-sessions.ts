@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import type { AiVaultSearchSort, AiVaultSession } from '../../../../shared/ai-vault-types'
 import type { ExecutionHostScope } from '../../../../shared/execution-host'
 import { useAppStore } from '@/store'
@@ -9,8 +9,9 @@ import {
 } from './ai-vault-terminal-tab-title'
 import { useAiVaultOpenTabSessions } from './use-ai-vault-open-tab-sessions'
 
-/** Host hits with scanned previews, plus rows whose open terminal tab was renamed to match the query. */
+/** Rows to render: host hits (when searching) plus sessions whose open terminal tab was renamed to match the query. */
 export function useAiVaultSearchSessions(
+  searching: boolean,
   hitSessions: AiVaultSession[],
   history: readonly AiVaultSession[],
   query: string,
@@ -19,7 +20,7 @@ export function useAiVaultSearchSessions(
   worktrees: readonly { id: string; path: string }[],
   onHitDeleted: (session: AiVaultSession) => void
 ): {
-  sessions: AiVaultSession[]
+  sessions: readonly AiVaultSession[]
   terminalTabTitleFor: (session: AiVaultSession) => string | null
   onDeleted: (session: AiVaultSession) => void
 } {
@@ -46,7 +47,8 @@ export function useAiVaultSearchSessions(
       terminalLayoutsByTabId
     ]
   )
-  const { sessions: openTabSessions, forget } = useAiVaultOpenTabSessions(
+  const [deletedIds, setDeletedIds] = useState<ReadonlySet<string>>(new Set())
+  const fetchedOpenTabSessions = useAiVaultOpenTabSessions(
     history,
     query,
     executionHostScope,
@@ -57,23 +59,32 @@ export function useAiVaultSearchSessions(
     (session: AiVaultSession) => terminalTabTitleForSession(paneState, session),
     [paneState]
   )
+  // Deleted ids are filtered at render so a stale history row or in-flight fetch cannot bring one back.
+  const candidates = useMemo(
+    () => [...history, ...fetchedOpenTabSessions].filter((session) => !deletedIds.has(session.id)),
+    [history, fetchedOpenTabSessions, deletedIds]
+  )
   const sessions = useMemo(
     () =>
-      withTerminalTabTitleMatches(
-        withAiVaultHistoryPreviews(hitSessions, history),
-        [...history, ...openTabSessions],
-        query,
-        sort,
-        paneState
-      ),
-    [hitSessions, history, openTabSessions, query, sort, paneState]
+      searching
+        ? withTerminalTabTitleMatches(
+            withAiVaultHistoryPreviews(hitSessions, history),
+            candidates,
+            query,
+            sort,
+            paneState
+          )
+        : fetchedOpenTabSessions.length > 0
+          ? candidates
+          : history,
+    [searching, hitSessions, history, candidates, fetchedOpenTabSessions, query, sort, paneState]
   )
   const onDeleted = useCallback(
     (session: AiVaultSession) => {
       onHitDeleted(session)
-      forget(session)
+      setDeletedIds((current) => new Set(current).add(session.id))
     },
-    [onHitDeleted, forget]
+    [onHitDeleted]
   )
   return { sessions, terminalTabTitleFor, onDeleted }
 }
