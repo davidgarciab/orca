@@ -24,11 +24,15 @@ import {
   isAgentSessionPreSpawnError
 } from './structured-agent-session-adapter'
 import {
+  startupAcquisitionRefusal,
   providerExitObserved,
   structuredAgentSessionStartFailure
 } from './structured-agent-session-failure-text'
 import { structuredAgentSessionFailureWordsContext } from './structured-agent-session-send-preparation'
-import { providerExecutableMissing } from '../../provider-process/provider-executable-missing'
+import {
+  providerExecutableMissing,
+  providerLaunchFolderMissing
+} from '../../provider-process/provider-executable-missing'
 import { argumentProblemOf } from '../structured-agent-arguments-error'
 import { agentCliInstallationProblemOf } from '../agent-cli-installation-error'
 import { agentCliInstallationFacts } from '../../../shared/agent-cli-installation-problem'
@@ -117,14 +121,18 @@ function failedAcquisitionDetails(
   if (argumentProblem) {
     return { reason: 'attachFailed', argumentProblem }
   }
-  if (error instanceof AgentSessionAcquisitionRefusal) {
-    return { reason: error.reason, ...(error.account ? { account: error.account } : {}) }
+  const typed = startupAcquisitionRefusal(error)
+  if (typed) {
+    return { reason: typed.reason, ...(typed.account ? { account: typed.account } : {}) }
   }
   if (isAgentSessionPreSpawnError(error) && error.reason) {
     return { reason: error.reason }
   }
   if (isExitProvenAcquisitionFailure(error) && providerExecutableMissing(error)) {
     return { reason: 'cliMissing' }
+  }
+  if (isExitProvenAcquisitionFailure(error) && providerLaunchFolderMissing(error)) {
+    return { reason: 'launchFolderMissing' }
   }
   if (isExitProvenAcquisitionFailure(error) && providerExitObserved(error)) {
     return { reason: 'providerStartFailed' }
