@@ -16,8 +16,13 @@ export function useAiVaultSearchSessions(
   query: string,
   sort: AiVaultSearchSort,
   executionHostScope: ExecutionHostScope,
-  worktrees: readonly { id: string; path: string }[]
-): { sessions: AiVaultSession[]; terminalTabTitleFor: (session: AiVaultSession) => string | null } {
+  worktrees: readonly { id: string; path: string }[],
+  onHitDeleted: (session: AiVaultSession) => void
+): {
+  sessions: AiVaultSession[]
+  terminalTabTitleFor: (session: AiVaultSession) => string | null
+  onDeleted: (session: AiVaultSession) => void
+} {
   const agentStatusByPaneKey = useAppStore((state) => state.agentStatusByPaneKey)
   const retainedAgentsByPaneKey = useAppStore((state) => state.retainedAgentsByPaneKey)
   const sleepingAgentSessionsByPaneKey = useAppStore(
@@ -41,7 +46,7 @@ export function useAiVaultSearchSessions(
       terminalLayoutsByTabId
     ]
   )
-  const openTabSessions = useAiVaultOpenTabSessions(
+  const { sessions: openTabSessions, forget } = useAiVaultOpenTabSessions(
     history,
     query,
     executionHostScope,
@@ -63,5 +68,12 @@ export function useAiVaultSearchSessions(
       ),
     [hitSessions, history, openTabSessions, query, sort, paneState]
   )
-  return { sessions, terminalTabTitleFor }
+  const onDeleted = useCallback(
+    (session: AiVaultSession) => {
+      onHitDeleted(session)
+      forget(session)
+    },
+    [onHitDeleted, forget]
+  )
+  return { sessions, terminalTabTitleFor, onDeleted }
 }

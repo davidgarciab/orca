@@ -160,13 +160,18 @@ export default function AiVaultPanel({
   )
   const search = useAiVaultPanelSearch(query, agents, searchWithin, executionHostScope, searchSort)
   const { searching, searchHits } = search
-  const { sessions: searchSessions, terminalTabTitleFor } = useAiVaultSearchSessions(
+  const {
+    sessions: searchSessions,
+    terminalTabTitleFor,
+    onDeleted
+  } = useAiVaultSearchSessions(
     search.sessions,
     history,
     query,
     searchSort,
     executionHostScope,
-    allWorktrees
+    allWorktrees,
+    search.onDeleted
   )
   const sessions = searching ? searchSessions : history
   const requestedScanKey = aiVaultLocalScanKey({
@@ -250,7 +255,7 @@ export default function AiVaultPanel({
 
   const requestDelete = useAiVaultSessionDeleteAction({
     refresh,
-    onDeleted: search.onDeleted
+    onDeleted
   })
 
   return (
@@ -299,7 +304,11 @@ export default function AiVaultPanel({
       ) : null}
 
       {!searching && <AiVaultScanIssueBanners scanResult={scanResult} />}
-      <AiVaultPanelSearch search={search} noAgents={agents.length === 0}>
+      <AiVaultPanelSearch
+        search={search}
+        noAgents={agents.length === 0}
+        resultCount={filteredSessions.length}
+      >
         {searching
           ? filteredSessions.length > 0 && (
               <AiVaultSessionListBar
