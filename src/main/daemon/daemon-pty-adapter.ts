@@ -223,10 +223,13 @@ export class DaemonPtyAdapter extends DaemonPtyDaemonRecovery implements IPtyPro
           }
           return
         }
+        // Every bridge exit marks a possible stop (unseen to the user; covers poweroff or --shutdown).
         if (wslDistro) {
           this.wslBridgeBootIdentity.noteExit(wslDistro)
         }
-        if (wslDistro && isProvenProcessExit(event.payload.code)) {
+        // A terminate never exits 0 (awin: -1 per bridge pane; `exit`/`exit 0` gave 0): a clean exit is
+        // the user's own, so it closes at once, without the settle wait or classification.
+        if (wslDistro && event.payload.code !== 0 && isProvenProcessExit(event.payload.code)) {
           const exitAt = performance.now()
           void this.finishWslBridgeExit(event.sessionId, event.payload, wslDistro, exitAt)
           return
@@ -254,7 +257,7 @@ export class DaemonPtyAdapter extends DaemonPtyDaemonRecovery implements IPtyPro
       this.wslBridgeBootIdentity.rebootedSinceSpawn(sessionId, wslDistro)
     )
     // Lost, or booted again since the spawn, keeps the tab; an unanswered check reads as an exit.
-    // The code lets a verify run show which codes a terminate yields (only 1 is on record).
+    // The code shows a verify run which codes a terminate yields.
     console.info(
       `[pty] WSL bridge exit: ${verdict} (distro ${wslDistro}, code ${exit.code}, probe ${Math.round(performance.now() - exitAt)}ms)`
     )
