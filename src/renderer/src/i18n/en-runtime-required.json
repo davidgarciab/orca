@@ -110,6 +110,32 @@
         "moreHosts_one": "{{count}} more host. Search by name to find it.",
         "moreHosts_other": "{{count}} more hosts. Search by name to find one."
       },
+      "repo": {
+        "repo": {
+          "icon": {
+            "07012dc113": "Agent",
+            "0ad395d475": "Box",
+            "137bdb1856": "Metrics",
+            "31826b712e": "API",
+            "3c5a593bc8": "Web",
+            "3eba7387ab": "Terminal",
+            "477b28c948": "Database",
+            "4ab9433660": "Work",
+            "65b437c381": "Code",
+            "70bef15d40": "Layers",
+            "787490e9bd": "Package",
+            "857977b901": "Shapes",
+            "b1b8d99fc4": "AI",
+            "b5fac337aa": "Compute",
+            "bed2674f9d": "Folder",
+            "c4fd14299d": "Company",
+            "d202c659a3": "Design",
+            "d37b4e2641": "Server",
+            "ecf63ec3ef": "Launch",
+            "febfbe0cd5": "Tools"
+          }
+        }
+      },
       "right": {
         "sidebar": {
           "AiVaultScanProgressStrip": {
@@ -767,8 +793,6 @@
         "stoppedBeforeStart": "Stopped manually"
       },
       "queuedMessages": {
-        "imageCount_one": "{{count}} image",
-        "imageCount_other": "{{count}} images",
         "editChanged": "This message changed while you were editing. Your edit is in the chat box.",
         "editChangedNotSaved": "This message changed while you were editing. Your edit wasn't saved.",
         "editChangedPrompt": "This message changed while you were editing. Your edit will be in the chat box after you answer the agent.",

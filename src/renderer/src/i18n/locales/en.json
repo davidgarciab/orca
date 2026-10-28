@@ -8000,7 +8000,9 @@
           "868c5c9b56": "Failed to import repo icon",
           "emojiTooLongForRepoIcon": "This emoji can't be used as a repo icon.",
           "currentEmojiSelection": "Current: {{value0}}",
-          "searchEmojiPlaceholder": "Search emoji"
+          "searchEmojiPlaceholder": "Search emoji",
+          "searchLucidePlaceholder": "Search icons",
+          "noLucideIconMatches": "No icons match your search."
         },
         "RepositoryPane": {
           "15a99d9b9f": "Relative paths resolve from this project root.",
